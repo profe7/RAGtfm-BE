@@ -1,8 +1,10 @@
 from pydantic import BaseModel, Field
 from fastapi import APIRouter
+from time import perf_counter
 
 from app.services.generation.ollama_generator import generate_answer
 from app.services.retrieval.hybrid_retriever import retrieve_hybrid_chunks
+from app.utils.timing import timed_stage
 
 
 
@@ -19,20 +21,29 @@ class RagQueryRequest(BaseModel):
 
 @router.post("/query")
 def query_rag(request: RagQueryRequest):
-    chunks = retrieve_hybrid_chunks(
-        query=request.query,
-        limit=request.limit,
-        candidate_limit=10,
-    )
+    metrics = {}
+    total_start = perf_counter()
 
-    answer = generate_answer(
-        query=request.query,
-        chunks=chunks,
-    )
+    with timed_stage(metrics, "retrieval_ms"):
+        chunks = retrieve_hybrid_chunks(
+            query=request.query,
+            limit=request.limit,
+            candidate_limit=20,
+            metrics=metrics,
+        )
+
+    with timed_stage(metrics, "generation_ms"):
+        answer = generate_answer(
+            query=request.query,
+            chunks=chunks,
+        )
+
+    metrics["total_ms"] = round((perf_counter() - total_start) * 1000, 2)
 
     return {
         "query": request.query,
         "answer": answer,
+        "metrics": metrics,
         "sources": [
             {
                 "chunk_id": chunk["chunk_id"],
@@ -49,3 +60,4 @@ def query_rag(request: RagQueryRequest):
             for chunk in chunks
         ],
     }
+

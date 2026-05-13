@@ -1,5 +1,3 @@
-import json
-
 import ollama
 
 
@@ -9,27 +7,27 @@ GENERATION_MODEL = "gemma4:latest"
 SYSTEM_PROMPT = """
 You are a careful RAG assistant.
 
-Answer the user's question using only the provided context.
-If the answer is not in the context, say you do not know.
+Answer using only the provided context.
+If the answer is not in the context, say: I do not know based on the provided context.
+Use one short paragraph unless the user asks for steps or a list.
 Cite sources inline using [source: chunk_id].
-Be concise, factual, and avoid guessing.
+Preserve exact values, units, button names, LED colors, and mode names from the context.
+Do not repeat the same source citation unnecessarily.
 """
 
 
 def format_chunk_for_context(chunk: dict) -> str:
     metadata = chunk["metadata"]
 
-    source = {
-        "chunk_id": chunk["chunk_id"],
-        "filename": metadata.get("filename"),
-        "chunk_type": metadata.get("chunk_type"),
-        "source_order": metadata.get("source_order_json") or metadata.get("source_order"),
-        "source_locations": metadata.get("source_locations_json"),
-    }
+    source_label = chunk["chunk_id"]
+    filename = metadata.get("filename")
+    chunk_type = metadata.get("chunk_type")
 
     return (
-        f"Source metadata:\n{json.dumps(source, indent=2)}\n\n"
-        f"Content:\n{chunk['text']}"
+        f"[source: {source_label}]\n"
+        f"filename: {filename}\n"
+        f"type: {chunk_type}\n\n"
+        f"{chunk['text']}"
     )
 
 
@@ -62,6 +60,7 @@ def generate_answer(query: str, chunks: list[dict]) -> str:
         ],
         options={
             "temperature": 0,
+            "num_predict": 1024,
         },
     )
 
