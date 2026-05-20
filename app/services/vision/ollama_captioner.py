@@ -1,7 +1,6 @@
 import base64
 
-import ollama
-
+from app.services.ollama_client import ollama_client
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -34,7 +33,7 @@ def caption_image_base64(image_base64: str | None) -> str | None:
 
     image_bytes = decode_base64_image(image_base64)
 
-    response = ollama.chat(
+    response = ollama_client.chat(
         model=VISION_MODEL,
         messages=[
             {

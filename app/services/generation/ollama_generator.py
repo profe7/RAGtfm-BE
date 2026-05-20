@@ -1,5 +1,4 @@
-import ollama
-
+from app.services.ollama_client import ollama_client
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -46,7 +45,7 @@ def build_context(chunks: list[dict]) -> str:
 def generate_answer(query: str, chunks: list[dict]) -> str:
     context = build_context(chunks)
 
-    response = ollama.chat(
+    response = ollama_client.chat(
         model=GENERATION_MODEL,
         messages=[
             {

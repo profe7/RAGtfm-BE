@@ -1,5 +1,4 @@
-import ollama
-
+from app.services.ollama_client import ollama_client
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -11,7 +10,7 @@ def embed_document_texts(texts: list[str]) -> list[list[float]]:
     if not texts:
         return []
 
-    response = ollama.embed(
+    response = ollama_client.embed(
         model=EMBEDDING_MODEL,
         input=[
             f"search_document: {text}"
@@ -23,7 +22,7 @@ def embed_document_texts(texts: list[str]) -> list[list[float]]:
 
 
 def embed_query_text(query: str) -> list[float]:
-    response = ollama.embed(
+    response = ollama_client.embed(
         model=EMBEDDING_MODEL,
         input=f"search_query: {query}",
     )
