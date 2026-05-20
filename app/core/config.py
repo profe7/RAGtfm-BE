@@ -24,6 +24,10 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
     )
 
+    storage_backend: str = "local"
+    storage_path: str = "storage"
+    documents_storage_path: str = "storage/documents"
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
