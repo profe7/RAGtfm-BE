@@ -4,10 +4,12 @@ import chromadb
 from langchain_core.documents import Document
 
 from app.services.embeddings.ollama_embedder import embed_document_texts
+from app.core.config import get_settings
 
 
-CHROMA_PATH = "chroma_db"
-COLLECTION_NAME = "rag_documents"
+settings = get_settings()
+CHROMA_PATH = settings.chroma_path
+COLLECTION_NAME = settings.chroma_collection_name
 
 
 def get_chroma_collection():

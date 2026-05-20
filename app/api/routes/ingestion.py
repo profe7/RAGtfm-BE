@@ -6,13 +6,16 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from app.services.pdf_loader import extract_pdf_documents_by_title
 from app.services.vectorstores.chroma_store import store_documents
 
+from app.core.config import get_settings
+
+settings = get_settings()
 
 router = APIRouter(
     prefix="/ingest",
     tags=["Ingestion"],
 )
 
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+MAX_FILE_SIZE = settings.max_file_size_mb * 1024 * 1024
 
 
 @router.post(

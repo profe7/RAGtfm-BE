@@ -1,7 +1,10 @@
 import ollama
 
+from app.core.config import get_settings
 
-EMBEDDING_MODEL = "nomic-embed-text"
+settings = get_settings()
+
+EMBEDDING_MODEL = settings.embedding_model
 
 
 def embed_document_texts(texts: list[str]) -> list[list[float]]:

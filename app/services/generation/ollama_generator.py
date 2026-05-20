@@ -1,7 +1,10 @@
 import ollama
 
+from app.core.config import get_settings
 
-GENERATION_MODEL = "gemma4:latest"
+settings = get_settings()
+
+GENERATION_MODEL = settings.generation_model
 
 
 SYSTEM_PROMPT = """
@@ -60,7 +63,6 @@ def generate_answer(query: str, chunks: list[dict]) -> str:
         ],
         options={
             "temperature": 0,
-            "num_predict": 1024,
         },
     )
 

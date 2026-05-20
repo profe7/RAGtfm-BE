@@ -2,8 +2,11 @@ from functools import lru_cache
 
 from sentence_transformers import CrossEncoder
 
+from app.core.config import get_settings
 
-RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+settings = get_settings()
+
+RERANKER_MODEL = settings.reranker_model
 
 
 @lru_cache(maxsize=1)

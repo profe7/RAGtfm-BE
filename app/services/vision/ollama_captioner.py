@@ -2,8 +2,11 @@ import base64
 
 import ollama
 
+from app.core.config import get_settings
 
-VISION_MODEL = "gemma4:latest"
+settings = get_settings()
+
+VISION_MODEL = settings.vision_model
 
 IMAGE_CAPTION_PROMPT = """
 Describe this image for retrieval in a document RAG system.

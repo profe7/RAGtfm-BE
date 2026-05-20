@@ -6,9 +6,13 @@ from app.api.routes.rag import router as rag_router
 from app.api.routes.test_metrics import router as test_metrics_router
 
 
+from app.core.config import get_settings
+
+settings = get_settings()
+
 app = FastAPI(
-    title="RAGtfm API",
-    version="0.1.0",
+    title=settings.app_name,
+    version=settings.app_version,
 )
 
 app.include_router(ingestion_router)
