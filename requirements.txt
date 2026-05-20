@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic-settings
+
+unstructured[pdf]
+langchain-core
+langchain-community
+
+chromadb
+ollama
+sentence-transformers
+rank-bm25
+
+pi-heif
+pillow
+pytesseract

@@ -1,8 +1,23 @@
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 
-chroma_db/
-.env
+# Virtual environments
 .venv/
 venv/
+env/
+
+# Environment config
+.env
+
+# Local vector store / generated data
+chroma_db/
+
+# Local document storage, when added later
+storage/
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
