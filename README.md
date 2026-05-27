@@ -22,6 +22,13 @@ Chroma    -> chroma:8000 inside Docker
 Ollama    -> ollama:11434 inside Docker
 ```
 
+## Reference Dev System 
+```text
+CPU : Intel Core i9 14900K 24C/32T
+RAM : 64GB 
+GPU : Nvidia Geforce RTX 4090 24GB
+```
+
 ## Available Features
 
 - [x] FastAPI application setup
