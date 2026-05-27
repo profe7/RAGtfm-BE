@@ -1,47 +1,55 @@
 import hashlib
-from pathlib import Path
 from uuid import UUID
+
+import boto3
 
 
 def calculate_sha256(file_bytes: bytes) -> str:
     return hashlib.sha256(file_bytes).hexdigest()
 
 
-def ensure_directory(path: str) -> None:
-    Path(path).mkdir(parents=True, exist_ok=True)
-
-
-def build_local_document_path(
-    documents_storage_path: str,
-    document_id: str,
-) -> Path:
-    return Path(documents_storage_path) / f"{document_id}.pdf"
-
-
-def build_local_document_uri(document_id: str) -> str:
-    return f"local://documents/{document_id}.pdf"
-
-
-def save_document_to_local_storage(
+def save_document_to_s3_storage(
     file_bytes: bytes,
     document_id: UUID,
-    documents_storage_path: str,
+    original_filename: str,
+    content_type: str,
+    endpoint_url: str,
+    access_key_id: str,
+    secret_access_key: str,
+    bucket_name: str,
+    region: str,
+    s3_expected_bucket_owner: str | None,
 ) -> dict:
     document_id_value = str(document_id)
+    object_key = f"documents/{document_id_value}.pdf"
 
-    ensure_directory(documents_storage_path)
-
-    document_path = build_local_document_path(
-        documents_storage_path=documents_storage_path,
-        document_id=document_id_value,
+    client = boto3.client(
+        "s3",
+        endpoint_url=endpoint_url,
+        aws_access_key_id=access_key_id,
+        aws_secret_access_key=secret_access_key,
+        region_name=region,
     )
 
-    document_path.write_bytes(file_bytes)
+    put_object_kwargs = {
+        "Bucket": bucket_name,
+        "Key": object_key,
+        "Body": file_bytes,
+        "ContentType": content_type,
+        "Metadata": {
+            "original_filename": original_filename,
+        },
+    }
+
+    if s3_expected_bucket_owner:
+        put_object_kwargs["ExpectedBucketOwner"] = s3_expected_bucket_owner
+
+    client.put_object(**put_object_kwargs)
 
     return {
-        "storage_backend": "local",
-        "storage_uri": build_local_document_uri(document_id_value),
-        "storage_path": str(document_path),
+        "storage_backend": "s3",
+        "storage_uri": f"s3://{bucket_name}/{object_key}",
+        "storage_path": object_key,
     }
 
 
@@ -50,16 +58,24 @@ def save_uploaded_document(
     document_id: UUID,
     original_filename: str,
     content_type: str,
-    storage_backend: str,
-    documents_storage_path: str,
+    s3_endpoint_url: str,
+    s3_access_key_id: str,
+    s3_secret_access_key: str,
+    s3_bucket_name: str,
+    s3_region: str,
+    s3_expected_bucket_owner: str | None,
 ) -> dict:
-    if storage_backend != "local":
-        raise ValueError(f"Unsupported storage backend: {storage_backend}")
-
-    storage_result = save_document_to_local_storage(
+    storage_result = save_document_to_s3_storage(
         file_bytes=file_bytes,
         document_id=document_id,
-        documents_storage_path=documents_storage_path,
+        original_filename=original_filename,
+        content_type=content_type,
+        endpoint_url=s3_endpoint_url,
+        access_key_id=s3_access_key_id,
+        secret_access_key=s3_secret_access_key,
+        bucket_name=s3_bucket_name,
+        region=s3_region,
+        s3_expected_bucket_owner=s3_expected_bucket_owner,
     )
 
     return {
@@ -70,3 +86,32 @@ def save_uploaded_document(
         "sha256": calculate_sha256(file_bytes),
         **storage_result,
     }
+
+def delete_document_from_s3_storage(
+    storage_path: str,
+    endpoint_url: str,
+    access_key_id: str,
+    secret_access_key: str,
+    bucket_name: str,
+    region: str,
+    s3_expected_bucket_owner: str | None,
+) -> bool:
+    client = boto3.client(
+        "s3",
+        endpoint_url=endpoint_url,
+        aws_access_key_id=access_key_id,
+        aws_secret_access_key=secret_access_key,
+        region_name=region,
+    )
+
+    delete_object_kwargs = {
+        "Bucket": bucket_name,
+        "Key": storage_path,
+    }
+
+    if s3_expected_bucket_owner:
+        delete_object_kwargs["ExpectedBucketOwner"] = s3_expected_bucket_owner
+
+    client.delete_object(**delete_object_kwargs)
+
+    return True

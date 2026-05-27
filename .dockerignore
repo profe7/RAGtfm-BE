@@ -1,0 +1,10 @@
+.git
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+chroma_db/
+storage/
+.env
+.env.docker

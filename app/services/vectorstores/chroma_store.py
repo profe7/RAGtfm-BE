@@ -8,12 +8,18 @@ from app.core.config import get_settings
 
 
 settings = get_settings()
-CHROMA_PATH = settings.chroma_path
 COLLECTION_NAME = settings.chroma_collection_name
 
 
+def get_chroma_client():
+    return chromadb.HttpClient(
+        host=settings.chroma_host,
+        port=settings.chroma_port,
+    )
+
+
 def get_chroma_collection():
-    client = chromadb.PersistentClient(path=CHROMA_PATH)
+    client = get_chroma_client()
 
     return client.get_or_create_collection(
         name=COLLECTION_NAME,
@@ -91,3 +97,12 @@ def store_documents(
     )
 
     return ids
+
+def delete_document_chunks(document_id: str) -> None:
+    collection = get_chroma_collection()
+
+    collection.delete(
+        where={
+            "document_id": document_id,
+        }
+    )

@@ -5,6 +5,10 @@ from app.services.pdf_loader import extract_pdf_documents_by_title
 from app.services.vectorstores.chroma_store import store_documents
 from app.core.config import get_settings
 from app.services.documents.document_storage import save_uploaded_document
+from fastapi import Depends
+from sqlalchemy.orm import Session
+from app.db.session import get_db
+from app.services.documents.document_catalog import create_document_record
 
 settings = get_settings()
 
@@ -27,7 +31,7 @@ MAX_FILE_SIZE = settings.max_file_size_mb * 1024 * 1024
         },
     },
 )
-async def ingest_pdf(file: Annotated[UploadFile, File()]):
+async def ingest_pdf(file: Annotated[UploadFile, File()], db: Annotated[Session, Depends(get_db)],):
     if file.content_type != "application/pdf":
         raise HTTPException(
             status_code=400,
@@ -60,13 +64,24 @@ async def ingest_pdf(file: Annotated[UploadFile, File()]):
         document_id=document_id,
         original_filename=file.filename or "uploaded.pdf",
         content_type=file.content_type or "application/pdf",
-        storage_backend=settings.storage_backend,
-        documents_storage_path=settings.documents_storage_path,
+        s3_endpoint_url=settings.s3_endpoint_url,
+        s3_access_key_id=settings.s3_access_key_id,
+        s3_secret_access_key=settings.s3_secret_access_key,
+        s3_bucket_name=settings.s3_bucket_name,
+        s3_region=settings.s3_region,
+        s3_expected_bucket_owner=settings.s3_expected_bucket_owner,
     )
 
     stored_chunk_ids = store_documents(
         document_id=str(document_id),
         documents=documents,
+    )
+
+    create_document_record(
+        db=db,
+        document_metadata=document_metadata,
+        chunk_count=len(documents),
+        stored_chunk_count=len(stored_chunk_ids),
     )
 
     return {

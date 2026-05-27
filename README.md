@@ -1,6 +1,26 @@
 # RAGtfm-BE
 
-FastAPI backend for a local RAG pipeline over PDF documents. The current system ingests PDFs, partitions and chunks document content, captions image chunks, embeds content locally with Ollama, stores vectors in ChromaDB, retrieves with hybrid search, reranks results, and generates grounded answers.
+Containerized FastAPI backend for a multimodal RAG pipeline over PDF documents. The current system ingests PDFs, stores originals in S3-compatible object storage, tracks documents in PostgreSQL, partitions and chunks document content, captions image chunks, embeds content with Ollama, stores vectors in ChromaDB, retrieves with hybrid search, reranks results, and generates grounded answers.
+
+## Architecture
+
+- [x] FastAPI API container
+- [x] PostgreSQL container for document catalog metadata
+- [x] MinIO container for S3-compatible document object storage
+- [x] ChromaDB server container for vector storage
+- [x] Ollama container for local model serving
+- [x] Docker Compose orchestration for local cloud-style development
+
+Local service mapping:
+
+```text
+FastAPI   -> http://localhost:8000
+MinIO UI  -> http://localhost:9001
+MinIO S3  -> http://minio:9000 inside Docker
+Postgres  -> postgres:5432 inside Docker
+Chroma    -> chroma:8000 inside Docker
+Ollama    -> ollama:11434 inside Docker
+```
 
 ## Available Features
 
@@ -8,6 +28,11 @@ FastAPI backend for a local RAG pipeline over PDF documents. The current system 
 - [x] PDF upload endpoint
 - [x] PDF file validation
 - [x] Upload size limit handling
+- [x] S3-compatible PDF persistence with MinIO
+- [x] PostgreSQL document catalog
+- [x] Document listing endpoint
+- [x] Document detail endpoint
+- [x] Document deletion across PostgreSQL, ChromaDB, and object storage
 - [x] PDF partitioning with Unstructured
 - [x] High-resolution PDF parsing
 - [x] Table structure inference
@@ -22,8 +47,8 @@ FastAPI backend for a local RAG pipeline over PDF documents. The current system 
 - [x] Embedding text preparation for text chunks
 - [x] Embedding text preparation for table chunks
 - [x] Caption-based embedding preparation for image chunks
-- [x] Local text embeddings with Ollama `nomic-embed-text`
-- [x] Persistent vector storage with ChromaDB
+- [x] Text embeddings with Ollama `nomic-embed-text`
+- [x] Persistent vector storage with ChromaDB server
 - [x] Chroma metadata serialization for nested source metadata
 - [x] Dense vector retrieval from ChromaDB
 - [x] BM25 keyword retrieval with LangChain `BM25Retriever`
@@ -40,6 +65,9 @@ FastAPI backend for a local RAG pipeline over PDF documents. The current system 
 ## Current API Endpoints
 
 - [x] `POST /ingest/pdf` uploads, processes, embeds, and stores a PDF
+- [x] `GET /documents` lists ingested documents
+- [x] `GET /documents/{document_id}` returns document metadata
+- [x] `DELETE /documents/{document_id}` deletes a document and associated resources
 - [x] `GET /retrieve/chunks` retrieves relevant chunks for a query
 - [x] `POST /rag/query` retrieves context and generates an answer
 - [x] `GET /test/metrics` runs the current evaluation dataset
@@ -55,42 +83,64 @@ FastAPI backend for a local RAG pipeline over PDF documents. The current system 
 
 ## Current Limitations
 
-- [ ] Original uploaded PDFs are not persisted
-- [ ] No document catalog or document listing endpoint yet
-- [ ] No document deletion endpoint yet
 - [ ] No duplicate upload detection yet
 - [ ] No user, tenant, or access-control layer yet
-- [ ] Image files are not stored separately after ingestion
-- [ ] ChromaDB is used as local persistence, not a managed production vector service
+- [ ] No background ingestion job queue yet
+- [ ] No database migrations yet
+- [ ] No health checks yet
 - [ ] Faithfulness and relevance metrics are lexical approximations, not LLM-as-judge metrics
 
-## Local Requirements
+## Requirements
 
-- Python
-- FastAPI
-- Uvicorn
-- Unstructured
-- LangChain Core
-- LangChain Community
-- ChromaDB
-- Ollama
-- Sentence Transformers
+- Docker
+- Docker Compose
+- NVIDIA GPU container support if using Ollama with GPU acceleration
 
-Required local Ollama models:
+Required Ollama models inside the Ollama container:
 
 - [x] `nomic-embed-text` for embeddings
 - [x] A vision-capable model for image captioning
 - [x] A chat model for answer generation
 
-## Run Locally
+## Run With Docker Compose
 
 ```bash
-uvicorn app.main:app --reload
+docker compose up -d --build
 ```
 
-Then open:
+Pull required models into the Ollama container:
+
+```bash
+docker compose exec ollama ollama pull nomic-embed-text
+docker compose exec ollama ollama pull gemma4:latest
+```
+
+Then open the API docs:
 
 ```text
-http://127.0.0.1:8000/docs
+http://localhost:8000/docs
 ```
 
+MinIO console:
+
+```text
+http://localhost:9001
+```
+
+Default local MinIO credentials:
+
+```text
+minioadmin / minioadmin
+```
+
+The `minio-init` service creates the `ragtfm-documents` bucket automatically.
+
+## Cloud Equivalents
+
+This local stack mirrors common cloud deployment boundaries:
+
+- [x] FastAPI container -> Cloud Run, ECS, AKS, GKE, or Azure Container Apps
+- [x] PostgreSQL container -> managed PostgreSQL such as RDS or Cloud SQL
+- [x] MinIO -> S3, GCS, Azure Blob, or another object store
+- [x] ChromaDB server -> managed vector database or standalone vector DB service
+- [x] Ollama -> dedicated model-serving endpoint, GPU VM, vLLM, or managed LLM provider

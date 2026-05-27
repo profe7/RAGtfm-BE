@@ -9,24 +9,29 @@ class Settings(BaseSettings):
 
     max_file_size_mb: int = 10
 
-    ollama_base_url: str = "http://localhost:11434"
+    ollama_base_url: str = "http://ollama:11434"
     embedding_model: str = "nomic-embed-text"
     generation_model: str = "gemma4:latest"
-    vision_model: str = "gemma4:e4b"
+    vision_model: str = "gemma4:latest"
 
-    chroma_path: str = "chroma_db"
+    chroma_host: str = "chroma"
+    chroma_port: int = 8000
     chroma_collection_name: str = "rag_documents"
+
+    s3_endpoint_url: str = "http://minio:9000"
+    s3_access_key_id: str = "minioadmin"
+    s3_secret_access_key: str = "minioadmin"
+    s3_bucket_name: str = "ragtfm-documents"
+    s3_region: str = "us-east-1"
+    s3_expected_bucket_owner: str | None = None
 
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
     model_config = SettingsConfigDict(
-        env_file=".env",
         env_file_encoding="utf-8",
     )
 
-    storage_backend: str = "local"
-    storage_path: str = "storage"
-    documents_storage_path: str = "storage/documents"
+    database_url: str = "postgresql+psycopg://postgres:soiree@postgres:5432/ragtfm"
 
 
 @lru_cache(maxsize=1)

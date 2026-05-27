@@ -15,3 +15,7 @@ rank-bm25
 pi-heif
 pillow
 pytesseract
+
+sqlalchemy
+psycopg[binary]
+boto3
