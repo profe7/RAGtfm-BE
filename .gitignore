@@ -10,6 +10,7 @@ env/
 
 # Environment config
 .env
+.env.docker
 
 # Local vector store / generated data
 chroma_db/
