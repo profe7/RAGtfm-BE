@@ -9,6 +9,7 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.services.documents.document_catalog import create_document_record
+from app.schemas.ingestion import IngestPdfResponse
 
 settings = get_settings()
 
@@ -22,6 +23,7 @@ MAX_FILE_SIZE = settings.max_file_size_mb * 1024 * 1024
 
 @router.post(
     "/pdf",
+    response_model=IngestPdfResponse,
     responses={
         400: {
             "description": "Invalid upload. The file must be a readable PDF.",

@@ -1,6 +1,8 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Query
+
+from app.schemas.retrieval import RetrieveChunksResponse
 from app.services.retrieval.hybrid_retriever import retrieve_hybrid_chunks
 
 
@@ -10,7 +12,7 @@ router = APIRouter(
 )
 
 
-@router.get("/chunks")
+@router.get("/chunks", response_model=RetrieveChunksResponse)
 def retrieve_chunks(
     query: Annotated[str, Query(min_length=1)],
     limit: Annotated[int, Query(ge=1, le=20)] = 5,
