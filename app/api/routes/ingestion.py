@@ -1,6 +1,6 @@
 from typing import Annotated
 from uuid import uuid4
-from fastapi import APIRouter, File, HTTPException, UploadFile, BackgroundTasks
+from fastapi import APIRouter, File, HTTPException, UploadFile
 from app.services.pdf_loader import extract_pdf_documents_by_title
 from app.services.vectorstores.chroma_store import store_documents
 from app.core.config import get_settings
@@ -34,7 +34,7 @@ MAX_FILE_SIZE = settings.max_file_size_mb * 1024 * 1024
         },
     },
 )
-async def ingest_pdf(file: Annotated[UploadFile, File()], db: Annotated[Session, Depends(get_db)], background_tasks: BackgroundTasks):
+async def ingest_pdf(file: Annotated[UploadFile, File()], db: Annotated[Session, Depends(get_db)]):
     if file.content_type != "application/pdf":
         raise HTTPException(
             status_code=400,
@@ -71,11 +71,10 @@ async def ingest_pdf(file: Annotated[UploadFile, File()], db: Annotated[Session,
         stored_chunk_count=0,
         status="PROCESSING",
     )
-
-    background_tasks.add_task(
-        process_document_task,
+    
+    process_document_task.delay(
         document_id=str(document_id),
-        file_bytes=file_bytes,
+        storage_path=document_metadata["storage_path"],
         filename=file.filename or "uploaded.pdf",
     )
 

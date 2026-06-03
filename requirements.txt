@@ -19,3 +19,5 @@ pytesseract
 sqlalchemy
 psycopg[binary]
 boto3
+celery
+redis

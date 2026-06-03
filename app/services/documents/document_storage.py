@@ -115,3 +115,23 @@ def delete_document_from_s3_storage(
     client.delete_object(**delete_object_kwargs)
 
     return True
+
+
+def download_document_from_s3_storage(
+    storage_path: str,
+    endpoint_url: str,
+    access_key_id: str,
+    secret_access_key: str,
+    bucket_name: str,
+    region: str,
+) -> bytes:
+    client = boto3.client(
+        "s3",
+        endpoint_url=endpoint_url,
+        aws_access_key_id=access_key_id,
+        aws_secret_access_key=secret_access_key,
+        region_name=region,
+    )
+
+    response = client.get_object(Bucket=bucket_name, Key=storage_path)
+    return response["Body"].read()
