@@ -9,6 +9,8 @@ Containerized FastAPI backend for a multimodal RAG pipeline over PDF documents. 
 - [x] MinIO container for S3-compatible document object storage
 - [x] ChromaDB server container for vector storage
 - [x] Ollama container for local model serving
+- [x] Redis container for message brokering
+- [x] Celery worker container for background asynchronous document ingestion
 - [x] Docker Compose orchestration for local cloud-style development
 
 Local service mapping:
@@ -20,6 +22,8 @@ MinIO S3  -> http://minio:9000 inside Docker
 Postgres  -> postgres:5432 inside Docker
 Chroma    -> chroma:8000 inside Docker
 Ollama    -> ollama:11434 inside Docker
+Redis     -> redis:6379 inside Docker
+Worker    -> Celery process inside Docker
 ```
 
 ## Reference Dev System 
@@ -92,7 +96,7 @@ GPU : Nvidia Geforce RTX 4090 24GB
 
 - [ ] No duplicate upload detection yet
 - [ ] No user, tenant, or access-control layer yet
-- [ ] No background ingestion job queue yet
+- [x] Background ingestion job queue with Celery
 - [ ] No database migrations yet
 - [ ] No health checks yet
 - [ ] Faithfulness and relevance metrics are lexical approximations, not LLM-as-judge metrics
@@ -151,3 +155,5 @@ This local stack mirrors common cloud deployment boundaries:
 - [x] MinIO -> S3, GCS, Azure Blob, or another object store
 - [x] ChromaDB server -> managed vector database or standalone vector DB service
 - [x] Ollama -> dedicated model-serving endpoint, GPU VM, vLLM, or managed LLM provider
+- [x] Redis -> managed Redis like ElastiCache or Memorystore
+- [x] Celery worker -> Dedicated background worker nodes or Cloud Run background jobs
