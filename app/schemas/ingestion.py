@@ -16,6 +16,7 @@ class IngestPdfResponse(BaseModel):
     document_id: str
     document: StoredDocumentResponse
     filename: str | None
+    status: str
     chunk_count: int
     stored_chunk_count: int
-    stored_chunk_ids: list[str]
+    stored_chunk_ids: list[str] = []

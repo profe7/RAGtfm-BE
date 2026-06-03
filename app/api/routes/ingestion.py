@@ -1,6 +1,6 @@
 from typing import Annotated
 from uuid import uuid4
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, HTTPException, UploadFile, BackgroundTasks
 from app.services.pdf_loader import extract_pdf_documents_by_title
 from app.services.vectorstores.chroma_store import store_documents
 from app.core.config import get_settings
@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.services.documents.document_catalog import create_document_record
 from app.schemas.ingestion import IngestPdfResponse
+from app.services.ingestion.tasks import process_document_task
 
 settings = get_settings()
 
@@ -33,7 +34,7 @@ MAX_FILE_SIZE = settings.max_file_size_mb * 1024 * 1024
         },
     },
 )
-async def ingest_pdf(file: Annotated[UploadFile, File()], db: Annotated[Session, Depends(get_db)],):
+async def ingest_pdf(file: Annotated[UploadFile, File()], db: Annotated[Session, Depends(get_db)], background_tasks: BackgroundTasks):
     if file.content_type != "application/pdf":
         raise HTTPException(
             status_code=400,
@@ -46,17 +47,6 @@ async def ingest_pdf(file: Annotated[UploadFile, File()], db: Annotated[Session,
         raise HTTPException(
             status_code=413,
             detail="PDF file is too large",
-        )
-
-    try:
-        documents = extract_pdf_documents_by_title(
-            file_bytes=file_bytes,
-            filename=file.filename or "uploaded.pdf",
-        )
-    except Exception:
-        raise HTTPException(
-            status_code=400,
-            detail="Could not read PDF file",
         )
 
     document_id = uuid4()
@@ -74,24 +64,28 @@ async def ingest_pdf(file: Annotated[UploadFile, File()], db: Annotated[Session,
         s3_expected_bucket_owner=settings.s3_expected_bucket_owner,
     )
 
-    stored_chunk_ids = store_documents(
-        document_id=str(document_id),
-        documents=documents,
-    )
-
     create_document_record(
         db=db,
         document_metadata=document_metadata,
-        chunk_count=len(documents),
-        stored_chunk_count=len(stored_chunk_ids),
+        chunk_count=0,
+        stored_chunk_count=0,
+        status="PROCESSING",
+    )
+
+    background_tasks.add_task(
+        process_document_task,
+        document_id=str(document_id),
+        file_bytes=file_bytes,
+        filename=file.filename or "uploaded.pdf",
     )
 
     return {
         "document_id": str(document_id),
         "document": document_metadata,
         "filename": file.filename,
-        "chunk_count": len(documents),
-        "stored_chunk_count": len(stored_chunk_ids),
-        "stored_chunk_ids": stored_chunk_ids,
+        "status": "PROCESSING",
+        "chunk_count": 0,
+        "stored_chunk_count": 0,
+        "stored_chunk_ids": [],
     }
 

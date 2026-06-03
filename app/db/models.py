@@ -25,7 +25,7 @@ class DocumentRecord(Base):
     storage_uri: Mapped[str] = mapped_column(String, nullable=False)
     storage_path: Mapped[str] = mapped_column(String, nullable=False)
 
-    status: Mapped[str] = mapped_column(String, nullable=False, default="READY")
+    status: Mapped[str] = mapped_column(String, nullable=False, default="PROCESSING")
     chunk_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     stored_chunk_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
