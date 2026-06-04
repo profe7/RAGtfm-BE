@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     app_name: str = "RAGtfm API"
     app_version: str = "0.1.0"
 
+    secret_key: str = "supersecretkeywohooyoushouldchangethisinproduction"
+    access_token_expire_minutes: int = 60 * 24 * 7
+
     max_file_size_mb: int = 10
 
     celery_broker_url: str = "redis://redis:6379/0"

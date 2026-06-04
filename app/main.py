@@ -8,6 +8,7 @@ from app.api.routes.documents import router as documents_router
 from app.db.session import init_db
 from contextlib import asynccontextmanager
 from app.core.config import get_settings
+from app.api.routes import auth
 
 settings = get_settings()
 @asynccontextmanager
@@ -26,3 +27,4 @@ app.include_router(retrieval_router)
 app.include_router(rag_router)
 app.include_router(test_metrics_router)
 app.include_router(documents_router)
+app.include_router(auth.router)

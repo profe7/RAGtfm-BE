@@ -11,6 +11,8 @@ from app.db.session import get_db
 from app.services.documents.document_catalog import create_document_record
 from app.schemas.ingestion import IngestPdfResponse
 from app.services.ingestion.tasks import process_document_task
+from app.api.deps import get_current_user
+from app.db.models import UserRecord
 
 settings = get_settings()
 
@@ -34,7 +36,11 @@ MAX_FILE_SIZE = settings.max_file_size_mb * 1024 * 1024
         },
     },
 )
-async def ingest_pdf(file: Annotated[UploadFile, File()], db: Annotated[Session, Depends(get_db)]):
+async def ingest_pdf(
+    file: Annotated[UploadFile, File()], 
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[UserRecord, Depends(get_current_user)]
+):
     if file.content_type != "application/pdf":
         raise HTTPException(
             status_code=400,
@@ -70,12 +76,14 @@ async def ingest_pdf(file: Annotated[UploadFile, File()], db: Annotated[Session,
         chunk_count=0,
         stored_chunk_count=0,
         status="PROCESSING",
+        user_id=current_user.id,
     )
-    
+
     process_document_task.delay(
         document_id=str(document_id),
         storage_path=document_metadata["storage_path"],
         filename=file.filename or "uploaded.pdf",
+        user_id=current_user.id,
     )
 
     return {

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 @celery_app.task(bind=True, max_retries=3)
-def process_document_task(self, document_id: str, storage_path: str, filename: str):
+def process_document_task(self, document_id: str, storage_path: str, filename: str, user_id: str):
     db = SessionLocal()
     try:
         logger.info(f"Downloading {filename} from S3 path: {storage_path}")
@@ -32,6 +32,7 @@ def process_document_task(self, document_id: str, storage_path: str, filename: s
         stored_chunk_ids = store_documents(
             document_id=document_id,
             documents=documents,
+            user_id=user_id,
         )
         
         update_document_status(

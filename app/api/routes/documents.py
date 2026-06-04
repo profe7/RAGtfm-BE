@@ -1,8 +1,6 @@
 from typing import Annotated
-
 from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy.orm import Session
-
 from app.core.config import get_settings
 from app.db.session import get_db
 from app.schemas.documents import (
@@ -17,6 +15,8 @@ from app.services.documents.document_catalog import (
 )
 from app.services.documents.document_storage import delete_document_from_s3_storage
 from app.services.vectorstores.chroma_store import delete_document_chunks
+from app.api.deps import get_current_user
+from app.db.models import UserRecord
 
 
 router = APIRouter(
@@ -28,8 +28,8 @@ settings = get_settings()
 
 
 @router.get("", response_model=DocumentListResponse)
-def list_documents(db: Annotated[Session, Depends(get_db)]):
-    documents = list_document_records(db)
+def list_documents(db: Annotated[Session, Depends(get_db)], current_user: Annotated[UserRecord, Depends(get_current_user)]):
+    documents = list_document_records(db, current_user.id)
 
     return {
         "count": len(documents),
@@ -42,13 +42,11 @@ def list_documents(db: Annotated[Session, Depends(get_db)]):
     response_model=DocumentResponse,
     responses={404: {"description": "Document not found"}},
 )
-def get_document(
-    document_id: Annotated[str, Path(min_length=1)],
-    db: Annotated[Session, Depends(get_db)],
-):
+def get_document(document_id: Annotated[str, Path(min_length=1)], db: Annotated[Session, Depends(get_db)], current_user: Annotated[UserRecord, Depends(get_current_user)]):
     document = get_document_record(
         db=db,
         document_id=document_id,
+        user_id=current_user.id,
     )
 
     if document is None:
@@ -65,13 +63,11 @@ def get_document(
     response_model=DeleteDocumentResponse,
     responses={404: {"description": "Document not found"}},
 )
-def delete_document(
-    document_id: Annotated[str, Path(min_length=1)],
-    db: Annotated[Session, Depends(get_db)],
-):
+def delete_document(document_id: Annotated[str, Path(min_length=1)], db: Annotated[Session, Depends(get_db)], current_user: Annotated[UserRecord, Depends(get_current_user)]):
     document = get_document_record(
         db=db,
         document_id=document_id,
+        user_id=current_user.id,
     )
 
     if document is None:

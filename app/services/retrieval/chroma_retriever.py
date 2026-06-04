@@ -6,15 +6,27 @@ def retrieve_relevant_chunks(
     query: str,
     limit: int = 5,
     reference_doc: str | None = None,
+    user_id: str = None,
 ) -> list[dict]:
     collection = get_chroma_collection()
     query_embedding = embed_query_text(query)
 
-    where = None
-
+    conditions = []
     if reference_doc:
-        where = {
+        conditions.append({
             "filename": reference_doc,
+        })
+    if user_id:
+        conditions.append({
+            "user_id": user_id,
+        })
+
+    where = None
+    if len(conditions) == 1:
+        where = conditions[0]
+    elif len(conditions) > 1:
+        where = {
+            "$and": conditions,
         }
 
     results = collection.query(

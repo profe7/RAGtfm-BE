@@ -21,3 +21,7 @@ psycopg[binary]
 boto3
 celery
 redis
+
+PyJWT
+bcrypt
+email-validator

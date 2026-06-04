@@ -1,8 +1,6 @@
 import json
-
 import chromadb
 from langchain_core.documents import Document
-
 from app.services.embeddings.ollama_embedder import embed_document_texts
 from app.core.config import get_settings
 
@@ -57,6 +55,7 @@ def document_text_for_chroma(document: Document) -> str:
 def store_documents(
     document_id: str,
     documents: list[Document],
+    user_id: str,
 ) -> list[str]:
     collection = get_chroma_collection()
 
@@ -81,6 +80,7 @@ def store_documents(
                 **document.metadata,
                 "document_id": document_id,
                 "chunk_id": chunk_id,
+                "user_id": user_id,
             })
         )
 
