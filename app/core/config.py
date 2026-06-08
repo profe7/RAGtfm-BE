@@ -14,6 +14,7 @@ class Settings(BaseSettings):
 
     celery_broker_url: str = "redis://redis:6379/0"
     celery_result_backend: str = "redis://redis:6379/0"
+    redis_url: str = "redis://redis:6379/0"
 
     ollama_base_url: str = "http://ollama:11434"
     embedding_model: str = "nomic-embed-text"

@@ -21,6 +21,7 @@ psycopg[binary]
 boto3
 celery
 redis
+sse-starlette
 
 PyJWT
 bcrypt

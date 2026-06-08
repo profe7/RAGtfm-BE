@@ -77,6 +77,13 @@ services:
       - minio
       - chroma
       - ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   api:
     build: .
