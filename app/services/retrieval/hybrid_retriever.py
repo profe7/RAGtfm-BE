@@ -57,6 +57,7 @@ def retrieve_hybrid_chunks(
     reference_doc: str | None = None,
     metrics: dict | None = None,
     user_id: str = None,
+    document_ids: list[str] | None = None,
 ) -> list[dict]:
     if metrics is None:
         metrics = {}
@@ -67,6 +68,7 @@ def retrieve_hybrid_chunks(
             limit=candidate_limit,
             reference_doc=reference_doc,
             user_id=user_id,
+            document_ids=document_ids,
         )
 
     with timed_stage(metrics, "bm25_retrieval_ms"):
@@ -75,6 +77,7 @@ def retrieve_hybrid_chunks(
             limit=candidate_limit,
             reference_doc=reference_doc,
             user_id=user_id,
+            document_ids=document_ids,
         )
 
     with timed_stage(metrics, "rrf_ms"):

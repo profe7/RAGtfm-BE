@@ -4,7 +4,7 @@ from langchain_core.documents import Document
 from app.services.vectorstores.chroma_store import get_chroma_collection
 
 
-def get_all_documents_from_chroma(reference_doc: str | None = None, user_id: str = None) -> list[Document]:
+def get_all_documents_from_chroma(reference_doc: str | None = None, user_id: str = None, document_ids: list[str] | None = None,) -> list[Document]:
     collection = get_chroma_collection()
 
     conditions = []
@@ -16,6 +16,8 @@ def get_all_documents_from_chroma(reference_doc: str | None = None, user_id: str
         conditions.append({
             "user_id": user_id,
         })
+    if document_ids:
+        conditions.append({"document_id": {"$in": document_ids}})
 
     where = None
     if len(conditions) == 1:
@@ -62,8 +64,9 @@ def retrieve_bm25_chunks(
     limit: int = 5,
     reference_doc: str | None = None,
     user_id: str = None,
+    document_ids: list[str] | None = None,
 ) -> list[dict]:
-    documents = get_all_documents_from_chroma(reference_doc=reference_doc, user_id=user_id)
+    documents = get_all_documents_from_chroma(reference_doc=reference_doc, user_id=user_id, document_ids=document_ids)
 
     if not documents:
         return []

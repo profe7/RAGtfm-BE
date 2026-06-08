@@ -28,6 +28,7 @@ def query_rag(request: RagQueryRequest, current_user: Annotated[UserRecord, Depe
             candidate_limit=20,
             metrics=metrics,
             user_id=current_user.id,
+            document_ids=request.document_ids, 
         )
 
     with timed_stage(metrics, "generation_ms"):

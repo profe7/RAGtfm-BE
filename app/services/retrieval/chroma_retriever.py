@@ -7,6 +7,7 @@ def retrieve_relevant_chunks(
     limit: int = 5,
     reference_doc: str | None = None,
     user_id: str = None,
+    document_ids: list[str] | None = None,
 ) -> list[dict]:
     collection = get_chroma_collection()
     query_embedding = embed_query_text(query)
@@ -20,6 +21,8 @@ def retrieve_relevant_chunks(
         conditions.append({
             "user_id": user_id,
         })
+    if document_ids:
+        conditions.append({"document_id": {"$in": document_ids}})
 
     where = None
     if len(conditions) == 1:
