@@ -1,5 +1,6 @@
 import jwt
 from datetime import datetime, timedelta
+from uuid import uuid4
 import bcrypt
 from app.core.config import get_settings
 
@@ -18,6 +19,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def create_access_token(subject: str) -> str:
     expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
-    to_encode = {"exp": expire, "sub": str(subject)}
+    to_encode = {"exp": expire, "sub": str(subject), "jti": str(uuid4())}
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm="HS256")
     return encoded_jwt
+
+def decode_access_token(token: str) -> dict:
+    return jwt.decode(token, settings.secret_key, algorithms=["HS256"])
