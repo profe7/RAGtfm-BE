@@ -38,15 +38,12 @@ services:
       "
 
   chroma:
-    image: chromadb/chroma:latest
-    container_name: ragtfm-chroma
-    ports:
-      - "8001:8000"
-    volumes:
-      - chroma_data:/chroma/chroma
-    environment:
-      IS_PERSISTENT: "TRUE"
-      PERSIST_DIRECTORY: /chroma/chroma
+      image: chromadb/chroma:latest
+      container_name: ragtfm-chroma
+      ports:
+        - "8001:8000"
+      volumes:
+        - chroma_data:/data
 
   ollama:
     image: ollama/ollama:latest
@@ -68,7 +65,7 @@ services:
   worker:
     build: .
     container_name: ragtfm-worker
-    command: celery -A app.core.celery_app worker --loglevel=info
+    command: celery -A app.core.celery_app worker --loglevel=info --pool=solo
     env_file:
       - .env.docker
     depends_on:
