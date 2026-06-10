@@ -94,7 +94,7 @@ def average(values: list[float]) -> float:
     return sum(values) / len(values)
 
 
-def evaluate_dataset(dataset: list[dict], k: int = 5) -> dict:
+async def evaluate_dataset(dataset: list[dict], k: int = 5) -> dict:
     results = []
 
     for item in dataset:
@@ -105,10 +105,13 @@ def evaluate_dataset(dataset: list[dict], k: int = 5) -> dict:
             reference_doc=item.get("reference_doc"),
         )
 
-        answer = generate_answer(
+        answer_parts = []
+        async for token in generate_answer(
             query=item["question"],
             chunks=chunks,
-        )
+        ):
+            answer_parts.append(token)
+        answer = "".join(answer_parts)
 
         recall_at_k = calculate_recall_at_k(chunks, item["ground_truth"])
         hitrate_at_k = calculate_hitrate_at_k(chunks, item["ground_truth"])

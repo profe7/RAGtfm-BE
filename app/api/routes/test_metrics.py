@@ -13,10 +13,10 @@ router = APIRouter(
 
 
 @router.get("/metrics")
-def test_metrics(
+async def test_metrics(
     k: Annotated[int, Query(ge=1, le=20)] = 5,
 ):
-    return evaluate_dataset(
+    return await evaluate_dataset(
         dataset=DATASET2,
         k=k,
     )
