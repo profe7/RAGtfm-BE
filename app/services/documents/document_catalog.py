@@ -83,3 +83,13 @@ def update_document_status(db: Session, document_id: str, status: str, chunk_cou
     db.commit()
     db.refresh(document)
     return document
+
+def get_document_by_checksum(db, user_id: str, sha256: str):
+    return (
+        db.query(DocumentRecord)
+        .filter(
+            DocumentRecord.user_id == user_id,
+            DocumentRecord.sha256 == sha256,
+        )
+        .first()
+    )

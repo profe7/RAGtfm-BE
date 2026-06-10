@@ -54,6 +54,7 @@ GPU : Nvidia Geforce RTX 4090 24GB
 - [x] Embedding text preparation for text, table, and image (caption-based) chunks
 - [x] Text embeddings with Ollama `nomic-embed-text`
 - [x] Persistent vector storage in ChromaDB with serialized nested metadata
+- [x] Duplicate upload detection
 
 ### Retrieval
 - [x] Dense vector retrieval from ChromaDB
@@ -111,7 +112,6 @@ GPU : Nvidia Geforce RTX 4090 24GB
 
 ## Current Limitations
 
-- [ ] No duplicate upload detection
 - [ ] No database migrations (schema is created fresh on startup via SQLAlchemy)
 - [ ] No health check endpoints
 - [ ] Faithfulness and relevance metrics are lexical approximations, not LLM-as-judge metrics

@@ -1,3 +1,4 @@
+import hashlib
 from typing import Annotated
 from uuid import uuid4
 from fastapi import APIRouter, File, HTTPException, UploadFile
@@ -8,7 +9,7 @@ from app.services.documents.document_storage import save_uploaded_document
 from fastapi import Depends
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.services.documents.document_catalog import create_document_record
+from app.services.documents.document_catalog import create_document_record, get_document_by_checksum
 from app.schemas.ingestion import IngestPdfResponse
 from app.services.ingestion.tasks import process_document_task
 from app.api.deps import get_current_user
@@ -28,31 +29,34 @@ MAX_FILE_SIZE = settings.max_file_size_mb * 1024 * 1024
     "/pdf",
     response_model=IngestPdfResponse,
     responses={
-        400: {
-            "description": "Invalid upload. The file must be a readable PDF.",
-        },
-        413: {
-            "description": "PDF file is too large.",
-        },
+        400: {"description": "Invalid upload. The file must be a readable PDF."},
+        409: {"description": "Duplicate file — already uploaded."},
+        413: {"description": "PDF file is too large."},
     },
 )
 async def ingest_pdf(
-    file: Annotated[UploadFile, File()], 
+    file: Annotated[UploadFile, File()],
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[UserRecord, Depends(get_current_user)]
+    current_user: Annotated[UserRecord, Depends(get_current_user)],
 ):
     if file.content_type != "application/pdf":
-        raise HTTPException(
-            status_code=400,
-            detail="Only PDF files are allowed",
-        )
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
 
     file_bytes = await file.read()
 
     if len(file_bytes) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="PDF file is too large")
+
+    sha256 = hashlib.sha256(file_bytes).hexdigest()
+    existing = get_document_by_checksum(db, user_id=current_user.id, sha256=sha256)
+    if existing and existing.status != "FAILED":
         raise HTTPException(
-            status_code=413,
-            detail="PDF file is too large",
+            status_code=409,
+            detail={
+                "message": "This file has already been uploaded.",
+                "document_id": existing.document_id,
+                "status": existing.status,
+            },
         )
 
     document_id = uuid4()
@@ -77,6 +81,7 @@ async def ingest_pdf(
         stored_chunk_count=0,
         status="PROCESSING",
         user_id=current_user.id,
+        sha256=sha256,
     )
 
     process_document_task.delay(
