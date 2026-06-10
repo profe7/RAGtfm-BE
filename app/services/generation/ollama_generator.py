@@ -1,4 +1,5 @@
 from app.services.ollama_client import ollama_client
+from app.services.ollama_client import ollama_async_client
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -42,18 +43,18 @@ def build_context(chunks: list[dict]) -> str:
     return "\n\n---\n\n".join(formatted_chunks)
 
 
-def generate_answer(query: str, chunks: list[dict]) -> str:
+async def generate_answer(query: str, chunks: list[dict]):
     context = build_context(chunks)
 
-    response = ollama_client.chat(
+    stream = await ollama_async_client.chat(
         model=GENERATION_MODEL,
         messages=[
             {
-                "role": "system",
-                "content": SYSTEM_PROMPT,
+                "role":"system",
+                "content":SYSTEM_PROMPT,
             },
             {
-                "role": "user",
+                "role":"user",
                 "content": (
                     f"Question:\n{query}\n\n"
                     f"Context:\n{context}"
@@ -61,8 +62,12 @@ def generate_answer(query: str, chunks: list[dict]) -> str:
             },
         ],
         options={
-            "temperature": 0,
+            "temperature":0,
         },
+        stream=True,
     )
 
-    return response["message"]["content"].strip()
+    async for chunk in stream:
+        content = chunk.message.content
+        if content:
+            yield content

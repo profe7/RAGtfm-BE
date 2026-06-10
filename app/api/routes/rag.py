@@ -1,6 +1,8 @@
+import json
 from time import perf_counter
 from fastapi import APIRouter
-from app.schemas.rag import RagQueryRequest, RagQueryResponse
+from fastapi.responses import StreamingResponse
+from app.schemas.rag import RagQueryRequest
 from app.services.generation.ollama_generator import generate_answer
 from app.services.retrieval.hybrid_retriever import retrieve_hybrid_chunks
 from app.utils.timing import timed_stage
@@ -16,8 +18,8 @@ router = APIRouter(
 )
 
 
-@router.post("/query", response_model=RagQueryResponse)
-def query_rag(request: RagQueryRequest, current_user: Annotated[UserRecord, Depends(get_current_user)]):
+@router.post("/query")
+async def query_rag(request: RagQueryRequest, current_user: Annotated[UserRecord, Depends(get_current_user)]):
     metrics = {}
     total_start = perf_counter()
 
@@ -30,18 +32,19 @@ def query_rag(request: RagQueryRequest, current_user: Annotated[UserRecord, Depe
             user_id=current_user.id,
             document_ids=request.document_ids, 
         )
+    
+    async def response_generator():
+        yield json.dumps({"type": "sources", "data": chunks}, separators=(',', ':')) + "\n"
 
-    with timed_stage(metrics, "generation_ms"):
-        answer = generate_answer(
-            query=request.query,
-            chunks=chunks,
-        )
+        with timed_stage(metrics, "generation_ms"):
+            async for token in generate_answer(query=request.query, chunks=chunks):
+                yield json.dumps({"type": "token", "data": token}, separators=(',', ':')) + "\n"
 
-    metrics["total_ms"] = round((perf_counter() - total_start) * 1000, 2)
+        metrics["total_ms"] = round((perf_counter() - total_start) * 1000, 2)
+        yield json.dumps({"type": "metrics", "data": metrics}, separators=(',', ':')) + "\n"
 
-    return {
-        "query": request.query,
-        "answer": answer,
-        "metrics": metrics,
-        "sources": chunks,
-    }
+    return StreamingResponse(
+        response_generator(),
+        media_type="application/x-ndjson"
+    )
+
