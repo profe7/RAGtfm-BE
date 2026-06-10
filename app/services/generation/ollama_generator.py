@@ -65,6 +65,7 @@ async def generate_answer(query: str, chunks: list[dict]):
             "temperature":0,
         },
         stream=True,
+        think=False,
     )
 
     async for chunk in stream:

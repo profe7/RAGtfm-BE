@@ -45,6 +45,7 @@ def caption_image_base64(image_base64: str | None) -> str | None:
         options={
             "temperature": 0,
         },
+        think=False,
     )
 
     return response["message"]["content"].strip()

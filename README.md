@@ -126,7 +126,7 @@ Required Ollama models (pull into the Ollama container after first start):
 
 ```bash
 docker compose exec ollama ollama pull nomic-embed-text
-docker compose exec ollama ollama pull gemma4:latest
+docker compose exec ollama ollama pull qwen3.5:latest
 ```
 
 ## Run With Docker Compose
