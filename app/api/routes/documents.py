@@ -1,3 +1,4 @@
+import math
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy.orm import Session
@@ -17,6 +18,7 @@ from app.services.documents.document_storage import delete_document_from_s3_stor
 from app.services.vectorstores.chroma_store import delete_document_chunks
 from app.api.deps import get_current_user
 from app.db.models import UserRecord
+from fastapi import Query
 
 
 router = APIRouter(
@@ -26,13 +28,22 @@ router = APIRouter(
 
 settings = get_settings()
 
-
 @router.get("", response_model=DocumentListResponse)
-def list_documents(db: Annotated[Session, Depends(get_db)], current_user: Annotated[UserRecord, Depends(get_current_user)]):
-    documents = list_document_records(db, current_user.id)
+def list_documents(
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[UserRecord, Depends(get_current_user)],
+    page: int = Query(1, ge=1, description="Page number (1-indexed)"),
+    page_size: int = Query(5, ge=1, le=100, description="Items per page"),
+):
+    skip = (page - 1) * page_size
+    documents, total = list_document_records(db, current_user.id, skip, page_size)
+    pages = max(1, math.ceil(total / page_size))
 
     return {
-        "count": len(documents),
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": pages,
         "documents": documents,
     }
 

@@ -33,14 +33,20 @@ def create_document_record(
     return document
 
 
-def list_document_records(db: Session, user_id: str) -> list[DocumentRecord]:
-    return (
+def list_document_records(
+    db: Session,
+    user_id: str,
+    skip: int = 0,
+    limit: int = 10,
+) -> tuple[list[DocumentRecord], int]:
+    query = (
         db.query(DocumentRecord)
         .filter(DocumentRecord.user_id == user_id)
         .order_by(DocumentRecord.created_at.desc())
-        .all()
     )
-
+    total = query.count()
+    documents = query.offset(skip).limit(limit).all()
+    return documents, total
 
 def get_document_record(db: Session, document_id: str, user_id: str = None) -> DocumentRecord | None:
     query = db.query(DocumentRecord).filter(DocumentRecord.document_id == document_id)

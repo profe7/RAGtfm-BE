@@ -21,7 +21,10 @@ class DocumentResponse(BaseModel):
 
 
 class DocumentListResponse(BaseModel):
-    count: int
+    total: int           
+    page: int            
+    page_size: int       
+    pages: int           
     documents: list[DocumentResponse]
 
 
