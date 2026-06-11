@@ -124,7 +124,9 @@ def download_document_from_s3_storage(
     secret_access_key: str,
     bucket_name: str,
     region: str,
+    s3_expected_bucket_owner: str | None = None,
 ) -> bytes:
+    
     client = boto3.client(
         "s3",
         endpoint_url=endpoint_url,
@@ -133,5 +135,13 @@ def download_document_from_s3_storage(
         region_name=region,
     )
 
-    response = client.get_object(Bucket=bucket_name, Key=storage_path)
+    get_object_kwargs = {
+        "Bucket": bucket_name,
+        "Key": storage_path,
+    }
+
+    if s3_expected_bucket_owner:
+        get_object_kwargs["ExpectedBucketOwner"] = s3_expected_bucket_owner
+
+    response = client.get_object(**get_object_kwargs)
     return response["Body"].read()

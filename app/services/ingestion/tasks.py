@@ -24,6 +24,7 @@ def process_document_task(self, document_id: str, storage_path: str, filename: s
             secret_access_key=settings.s3_secret_access_key,
             bucket_name=settings.s3_bucket_name,
             region=settings.s3_region,
+            s3_expected_bucket_owner=settings.s3_expected_bucket_owner,
         )
 
         documents = extract_pdf_documents_by_title(
@@ -56,7 +57,7 @@ def process_document_task(self, document_id: str, storage_path: str, filename: s
         logger.info(f"Successfully processed document {document_id}")
         
     except Exception as e:
-        logger.error(f"Failed to process document {document_id}: {str(e)}")
+        logger.exception(f"Failed to process document {document_id}: {str(e)}")
         try:
             self.retry(countdown=10 * (self.request.retries + 1))
         except self.MaxRetriesExceededError:
