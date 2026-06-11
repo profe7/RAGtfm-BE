@@ -1,7 +1,6 @@
 from app.services.retrieval.bm25_retriever import retrieve_bm25_chunks
 from app.services.retrieval.chroma_retriever import retrieve_relevant_chunks
 from app.services.retrieval.cross_encoder_reranker import rerank_chunks
-
 from app.utils.timing import timed_stage
 
 

@@ -1,12 +1,13 @@
 import logging
-from app.db.session import SessionLocal
+
 from app.core.celery_app import celery_app
 from app.core.config import get_settings
-from app.services.pdf_loader import extract_pdf_documents_by_title
-from app.services.vectorstores.chroma_store import store_documents
+from app.db.session import SessionLocal
 from app.services.documents.document_catalog import update_document_status
 from app.services.documents.document_storage import download_document_from_s3_storage
 from app.services.events.redis_publisher import publish_document_event
+from app.services.pdf_loader import extract_pdf_documents_by_title
+from app.services.vectorstores.chroma_store import store_documents
 
 logger = logging.getLogger(__name__)
 settings = get_settings()

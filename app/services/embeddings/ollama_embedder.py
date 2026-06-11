@@ -1,5 +1,5 @@
-from app.services.ollama_client import ollama_client
 from app.core.config import get_settings
+from app.services.ollama_client import ollama_client
 
 settings = get_settings()
 

@@ -1,7 +1,9 @@
-import jwt
 from datetime import datetime, timedelta
 from uuid import uuid4
+
 import bcrypt
+import jwt
+
 from app.core.config import get_settings
 
 settings = get_settings()

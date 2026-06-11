@@ -1,8 +1,10 @@
 import json
+
 import chromadb
 from langchain_core.documents import Document
-from app.services.embeddings.ollama_embedder import embed_document_texts
+
 from app.core.config import get_settings
+from app.services.embeddings.ollama_embedder import embed_document_texts
 
 
 settings = get_settings()

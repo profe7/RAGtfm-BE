@@ -1,7 +1,9 @@
 from datetime import datetime, UTC
 from uuid import uuid4
+
 from sqlalchemy import DateTime, Integer, String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.db.session import Base
 
 class UserRecord(Base):

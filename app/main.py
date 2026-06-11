@@ -1,15 +1,16 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
-from app.api.routes.ingestion import router as ingestion_router
-from app.api.routes.retrieval import router as retrieval_router
-from app.api.routes.rag import router as rag_router
-from app.api.routes.test_metrics import router as test_metrics_router
-from app.api.routes.events import router as events_router
-from app.api.routes.documents import router as documents_router
-from app.db.session import init_db
-from contextlib import asynccontextmanager
-from app.core.config import get_settings
 from app.api.routes import auth
+from app.api.routes.documents import router as documents_router
+from app.api.routes.events import router as events_router
+from app.api.routes.ingestion import router as ingestion_router
+from app.api.routes.rag import router as rag_router
+from app.api.routes.retrieval import router as retrieval_router
+from app.api.routes.test_metrics import router as test_metrics_router
+from app.core.config import get_settings
+from app.db.session import init_db
 
 settings = get_settings()
 @asynccontextmanager
