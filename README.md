@@ -36,9 +36,13 @@ GPU : Nvidia Geforce RTX 4090 24GB
 
 ## Available Features
 
+### Health Checks
+- [x] Health check endpoints
+
 ### Auth
 - [x] User registration and login with JWT bearer tokens
 - [x] Per-user document scoping across all endpoints
+- [x] Database migrations available with alembic
 
 ### Ingestion
 - [x] PDF upload endpoint
@@ -88,6 +92,8 @@ GPU : Nvidia Geforce RTX 4090 24GB
 | `GET` | `/retrieve/chunks` | Retrieve relevant chunks for a query |
 | `POST` | `/rag/query` | Retrieve context and generate a grounded answer |
 | `GET` | `/test/metrics` | Run the evaluation dataset and return metrics |
+| `GET` | `/health/live` | Check if the API is alive |
+| `GET` | `/health/ready` | Check if the API can serve traffic |
 
 ## RAG Query Request
 
@@ -112,8 +118,6 @@ GPU : Nvidia Geforce RTX 4090 24GB
 
 ## Current Limitations
 
-- [ ] No database migrations (schema is created fresh on startup via SQLAlchemy)
-- [ ] No health check endpoints
 - [ ] Faithfulness and relevance metrics are lexical approximations, not LLM-as-judge metrics
 
 ## Requirements
