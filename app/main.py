@@ -1,5 +1,3 @@
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 
 from app.api.routes import auth
@@ -10,18 +8,12 @@ from app.api.routes.rag import router as rag_router
 from app.api.routes.retrieval import router as retrieval_router
 from app.api.routes.test_metrics import router as test_metrics_router
 from app.core.config import get_settings
-from app.db.session import init_db
 
 settings = get_settings()
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    init_db()
-    yield
 
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
-    lifespan=lifespan
 )
 
 app.include_router(ingestion_router)

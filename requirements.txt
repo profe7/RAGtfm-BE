@@ -17,6 +17,7 @@ pillow
 pytesseract
 
 sqlalchemy
+alembic
 psycopg[binary]
 boto3
 celery
@@ -26,3 +27,5 @@ sse-starlette
 PyJWT
 bcrypt
 email-validator
+
+pytest
