@@ -2,7 +2,7 @@ from app.db.models import UserRecord
 
 def test_register_user_success(client, db_session):
     response = client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json={"email": "test@example.com", "password": "securepassword"}
     )
     
@@ -15,12 +15,12 @@ def test_register_user_success(client, db_session):
 
 def test_register_duplicate_user(client):
     client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json={"email": "duplicate@example.com", "password": "password123"}
     )
     
     response = client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json={"email": "duplicate@example.com", "password": "password123"}
     )
     

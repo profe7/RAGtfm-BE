@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 
 from app.api.routes import auth
 from app.api.routes.documents import router as documents_router
@@ -17,11 +17,15 @@ app = FastAPI(
     version=settings.app_version,
 )
 
-app.include_router(ingestion_router)
-app.include_router(retrieval_router)
-app.include_router(rag_router)
-app.include_router(test_metrics_router)
-app.include_router(events_router) 
-app.include_router(documents_router)
-app.include_router(health_router)
-app.include_router(auth.router)
+api_router = APIRouter(prefix="/api/v1")
+
+api_router.include_router(ingestion_router)
+api_router.include_router(retrieval_router)
+api_router.include_router(rag_router)
+api_router.include_router(test_metrics_router)
+api_router.include_router(events_router) 
+api_router.include_router(documents_router)
+api_router.include_router(health_router)
+api_router.include_router(auth.router)
+
+app.include_router(api_router)

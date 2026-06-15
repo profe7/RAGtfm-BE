@@ -41,33 +41,33 @@ def mock_document(db_session, mock_user):
     return document
 
 def test_list_documents_empty(auth_client):
-    response = auth_client.get("/documents/")
+    response = auth_client.get("/api/v1/documents/")
     assert response.status_code == 200
     data = response.json()
-    assert data["count"] == 0
+    assert data["total"] == 0
     assert data["documents"] == []
 
 def test_list_documents_with_data(auth_client, mock_document):
-    response = auth_client.get("/documents")
+    response = auth_client.get("/api/v1/documents")
     assert response.status_code == 200
     data = response.json()
-    assert data["count"] == 1
+    assert data["total"] == 1
     assert data["documents"][0]["document_id"] == "doc1"
     assert data["documents"][0]["original_filename"] == "test_document.pdf"
 
 def test_get_document_by_id(auth_client, mock_document):
-    response = auth_client.get(f"/documents/{mock_document.document_id}")
+    response = auth_client.get(f"/api/v1/documents/{mock_document.document_id}")
     assert response.status_code == 200
     data = response.json()
     assert data["document_id"] == "doc1"
     assert data["original_filename"] == "test_document.pdf"
 
 def test_get_document_by_id_not_found(auth_client):
-    response = auth_client.get("/documents/nonexistent")
+    response = auth_client.get("/api/v1/documents/nonexistent")
     assert response.status_code == 404
     assert response.json()["detail"] == "Document not found"
 
 def test_unauthenticated_access(client):
-    response = client.get("/documents/")
+    response = client.get("/api/v1/documents/")
     assert response.status_code == 401
     assert response.json()["detail"] == "Not authenticated"
