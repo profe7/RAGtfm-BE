@@ -81,7 +81,6 @@ async def ingest_pdf(
         stored_chunk_count=0,
         status="PROCESSING",
         user_id=current_user.id,
-        sha256=sha256,
     )
 
     process_document_task.delay(
