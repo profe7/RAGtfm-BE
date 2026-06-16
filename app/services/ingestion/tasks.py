@@ -16,6 +16,17 @@ settings = get_settings()
 def process_document_task(self, document_id: str, storage_path: str, filename: str, user_id: str):
     db = SessionLocal()
     try:
+        result = update_document_status(db=db, document_id=document_id, status="PROCESSING")
+        if result is None:
+            logger.warning(f"Document {document_id} no longer exists, aborting task")
+            return
+        
+        publish_document_event(
+            user_id=user_id,
+            document_id=document_id,
+            status="PROCESSING",
+        )
+        
         logger.info(f"Downloading {filename} from S3 path: {storage_path}")
         file_bytes = download_document_from_s3_storage(
             storage_path=storage_path,

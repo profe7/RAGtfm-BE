@@ -72,9 +72,16 @@ def get_document(document_id: Annotated[str, Path(min_length=1)], db: Annotated[
 @router.delete(
     "/{document_id}",
     response_model=DeleteDocumentResponse,
-    responses={404: {"description": "Document not found"}},
+    responses={
+        404: {"description": "Document not found"},
+        409: {"description": "Document is being processed, unable to delete"},
+    },
 )
-def delete_document(document_id: Annotated[str, Path(min_length=1)], db: Annotated[Session, Depends(get_db)], current_user: Annotated[UserRecord, Depends(get_current_user)]):
+def delete_document(
+    document_id: Annotated[str, Path(min_length=1)], 
+    db: Annotated[Session, Depends(get_db)], 
+    current_user: Annotated[UserRecord, Depends(get_current_user)]
+):
     document = get_document_record(
         db=db,
         document_id=document_id,
@@ -85,6 +92,12 @@ def delete_document(document_id: Annotated[str, Path(min_length=1)], db: Annotat
         raise HTTPException(
             status_code=404,
             detail="Document not found",
+        )
+    
+    if document.status == "PROCESSING":
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot delete a document that is currently being processed.",
         )
 
     delete_document_chunks(document_id=document_id)

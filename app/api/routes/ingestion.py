@@ -9,11 +9,11 @@ from app.services.documents.document_storage import save_uploaded_document
 from fastapi import Depends
 from sqlalchemy.orm import Session
 from app.db.session import get_db
+from app.db.models import UserRecord, DocumentRecord
 from app.services.documents.document_catalog import create_document_record, get_document_by_checksum
 from app.schemas.ingestion import IngestPdfResponse
 from app.services.ingestion.tasks import process_document_task
 from app.api.deps import get_current_user
-from app.db.models import UserRecord
 
 settings = get_settings()
 
@@ -32,6 +32,7 @@ MAX_FILE_SIZE = settings.max_file_size_mb * 1024 * 1024
         400: {"description": "Invalid upload. The file must be a readable PDF."},
         409: {"description": "Duplicate file — already uploaded."},
         413: {"description": "PDF file is too large."},
+        429: {"description": "Too many documents in the queue for a given user."},
     },
 )
 async def ingest_pdf(
@@ -58,6 +59,17 @@ async def ingest_pdf(
                 "status": existing.status,
             },
         )
+    
+    queued_count = db.query(DocumentRecord).filter(
+        DocumentRecord.user_id == current_user.id,
+        DocumentRecord.status.in_(["QUEUED", "PROCESSING"])
+    ).count()
+
+    if queued_count >= 5:
+        raise HTTPException(
+            status_code=429,
+            detail="You have too many documents in the queue. Please wait for some to finish.",
+        )
 
     document_id = uuid4()
 
@@ -79,7 +91,7 @@ async def ingest_pdf(
         document_metadata=document_metadata,
         chunk_count=0,
         stored_chunk_count=0,
-        status="PROCESSING",
+        status="QUEUED",
         user_id=current_user.id,
     )
 
@@ -94,7 +106,7 @@ async def ingest_pdf(
         "document_id": str(document_id),
         "document": document_metadata,
         "filename": file.filename,
-        "status": "PROCESSING",
+        "status": "QUEUED",
         "chunk_count": 0,
         "stored_chunk_count": 0,
         "stored_chunk_ids": [],
