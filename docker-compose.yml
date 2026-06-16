@@ -10,6 +10,11 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ragtfm"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   minio:
     image: minio/minio
@@ -52,7 +57,13 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
-    gpus: all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   redis:
     image: redis:alpine
@@ -69,18 +80,16 @@ services:
     env_file:
       - .env.docker
     depends_on:
-      - redis
-      - postgres
-      - minio
-      - chroma
-      - ollama
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      chroma:
+        condition: service_started
+      ollama:
+        condition: service_started
 
   api:
     build: .
@@ -89,15 +98,19 @@ services:
       - .env.docker
     ports:
       - "8000:8000"
-    volumes:
-      - .:/app
     depends_on:
-      - redis
-      - postgres
-      - minio
-      - minio-init
-      - chroma
-      - ollama
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      minio-init:
+        condition: service_completed_successfully
+      chroma:
+        condition: service_started
+      ollama:
+        condition: service_started
     command: >
       sh -c "alembic upgrade head &&
              uvicorn app.main:app --host 0.0.0.0 --port 8000"
