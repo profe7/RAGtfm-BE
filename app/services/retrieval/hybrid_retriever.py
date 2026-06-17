@@ -51,6 +51,7 @@ def reciprocal_rank_fusion(
 
 def retrieve_hybrid_chunks(
     query: str,
+    dense_query: str | None = None,
     limit: int = 5,
     candidate_limit: int = 20,
     reference_doc: str | None = None,
@@ -63,7 +64,7 @@ def retrieve_hybrid_chunks(
 
     with timed_stage(metrics, "dense_retrieval_ms"):
         dense_chunks = retrieve_relevant_chunks(
-            query=query,
+            query=dense_query or query,
             limit=candidate_limit,
             reference_doc=reference_doc,
             user_id=user_id,

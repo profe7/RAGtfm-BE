@@ -5,6 +5,7 @@ from fastapi.responses import StreamingResponse
 from app.schemas.rag import RagQueryRequest
 from app.services.generation.ollama_generator import generate_answer
 from app.services.retrieval.hybrid_retriever import retrieve_hybrid_chunks
+from app.services.retrieval.query_rewriter import rewrite_query_hyde
 from app.utils.timing import timed_stage
 from app.api.deps import get_current_user
 from app.db.models import UserRecord
@@ -23,14 +24,18 @@ async def query_rag(request: RagQueryRequest, current_user: Annotated[UserRecord
     metrics = {}
     total_start = perf_counter()
 
+    with timed_stage(metrics, "query_rewrite_ms"):
+        retrieval_query = rewrite_query_hyde(request.query)
+
     with timed_stage(metrics, "retrieval_ms"):
         chunks = retrieve_hybrid_chunks(
             query=request.query,
+            dense_query=retrieval_query,
             limit=request.limit,
             candidate_limit=20,
             metrics=metrics,
             user_id=current_user.id,
-            document_ids=request.document_ids, 
+            document_ids=request.document_ids,
         )
     
     async def response_generator():
