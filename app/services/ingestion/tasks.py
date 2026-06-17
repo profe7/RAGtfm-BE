@@ -7,6 +7,7 @@ from app.services.documents.document_catalog import update_document_status
 from app.services.documents.document_storage import download_document_from_s3_storage
 from app.services.events.redis_publisher import publish_document_event
 from app.services.pdf_loader import extract_pdf_documents_by_title
+from app.services.retrieval.bm25_retriever import clear_bm25_cache
 from app.services.vectorstores.chroma_store import store_documents
 
 logger = logging.getLogger(__name__)
@@ -56,6 +57,8 @@ def process_document_task(self, document_id: str, storage_path: str, filename: s
             chunk_count=len(documents),
             stored_chunk_count=len(stored_chunk_ids)
         )
+
+        clear_bm25_cache()
 
         publish_document_event(
             user_id=user_id,

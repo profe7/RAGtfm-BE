@@ -15,6 +15,7 @@ from app.services.documents.document_catalog import (
     list_document_records,
 )
 from app.services.documents.document_storage import delete_document_from_s3_storage
+from app.services.retrieval.bm25_retriever import clear_bm25_cache
 from app.services.vectorstores.chroma_store import delete_document_chunks
 from app.api.deps import get_current_user
 from app.db.models import UserRecord
@@ -116,6 +117,8 @@ def delete_document(
         db=db,
         document_id=document_id,
     )
+
+    clear_bm25_cache()
 
     return {
         "document_id": document_id,
