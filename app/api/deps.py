@@ -10,7 +10,7 @@ from app.db.models import TokenDenylistRecord, UserRecord
 from app.db.session import get_db
 
 settings = get_settings()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
 
 def get_current_user(
     db: Session = Depends(get_db),
