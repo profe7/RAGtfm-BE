@@ -1,11 +1,15 @@
 from langchain_core.documents import Document
 from unstructured.chunking.title import chunk_by_title
 
+from app.core.config import get_settings
 from app.services.ingestion.source_metadata import (
     source_location_from_element,
     source_locations_from_chunk,
     source_order_range,
 )
+
+
+settings = get_settings()
 
 
 TEXT_ELEMENT_TYPES = {
@@ -17,10 +21,64 @@ TEXT_ELEMENT_TYPES = {
     "Footer",
 }
 
+CONTEXT_ELEMENT_TYPES = TEXT_ELEMENT_TYPES | {"FigureCaption", "Caption"}
+
 SEPARATE_ELEMENT_TYPES = {
     "Table",
     "Image",
 }
+
+
+def build_image_context(
+    elements,
+    image_element,
+    window: int = 2,
+    max_chars: int = settings.vision_context_max_chars,
+) -> str:
+    """Collect the text from elements neighbouring an image in reading order.
+
+    Looks at up to ``window`` text-bearing elements before and after the image,
+    preferring elements on the same page, and returns their concatenated text
+    truncated to ``max_chars``.
+    """
+    try:
+        image_index = elements.index(image_element)
+    except ValueError:
+        return ""
+
+    image_page = getattr(image_element.metadata, "page_number", None)
+
+    def context_text(element) -> str | None:
+        if element.category not in CONTEXT_ELEMENT_TYPES:
+            return None
+        text = str(element).strip()
+        return text or None
+
+    before: list[str] = []
+    for element in reversed(elements[:image_index]):
+        if len(before) >= window:
+            break
+        page = getattr(element.metadata, "page_number", None)
+        if image_page is not None and page is not None and page != image_page:
+            continue
+        text = context_text(element)
+        if text:
+            before.append(text)
+    before.reverse()
+
+    after: list[str] = []
+    for element in elements[image_index + 1:]:
+        if len(after) >= window:
+            break
+        page = getattr(element.metadata, "page_number", None)
+        if image_page is not None and page is not None and page != image_page:
+            continue
+        text = context_text(element)
+        if text:
+            after.append(text)
+
+    combined = " ".join(before + after).strip()
+    return combined[:max_chars]
 
 
 def chunk_pdf_elements_by_title(elements, filename: str) -> list[Document]:
@@ -80,6 +138,7 @@ def chunk_pdf_elements_by_title(elements, filename: str) -> list[Document]:
             extra_metadata = {
                 "image_base64": getattr(metadata, "image_base64", None),
                 "image_mime_type": getattr(metadata, "image_mime_type", None),
+                "image_context": build_image_context(elements, element),
             }
         else:
             page_content = text

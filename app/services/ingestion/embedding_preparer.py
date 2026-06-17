@@ -1,6 +1,10 @@
 from langchain_core.documents import Document
 
-from app.services.vision.ollama_captioner import caption_image_base64
+from app.services.vision.image_ocr import ocr_image_bytes
+from app.services.vision.ollama_captioner import (
+    caption_image_base64,
+    decode_base64_image,
+)
 
 
 def normalize_for_embedding(text: str) -> str:
@@ -28,14 +32,26 @@ def prepare_table_embedding(document: Document) -> None:
 
 
 def prepare_image_embedding(document: Document) -> None:
+    image_base64 = document.metadata.get("image_base64")
+
+    ocr_text = ""
+    if image_base64:
+        ocr_text = ocr_image_bytes(decode_base64_image(image_base64))
+
     image_caption = caption_image_base64(
-        document.metadata.get("image_base64")
+        image_base64,
+        context_text=document.metadata.get("image_context"),
+        ocr_text=ocr_text or None,
     )
 
     document.metadata["image_caption"] = image_caption
+    document.metadata["image_ocr_text"] = ocr_text
+
+    combined = "\n".join(part for part in (image_caption, ocr_text) if part)
+
     document.metadata["embedding_content_type"] = "text"
     document.metadata["embedding_text"] = normalize_for_embedding(
-        image_caption or document.page_content
+        combined or document.page_content
     )
 
 

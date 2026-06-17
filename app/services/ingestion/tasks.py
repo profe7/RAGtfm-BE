@@ -10,6 +10,7 @@ from app.services.events.redis_publisher import publish_document_event
 from app.services.pdf_loader import extract_pdf_documents_by_title
 from app.services.retrieval.bm25_retriever import clear_bm25_cache
 from app.services.vectorstores.chroma_store import store_documents
+from app.services.vision.image_store import persist_image_chunks
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -44,7 +45,13 @@ def process_document_task(self, document_id: str, storage_path: str, filename: s
             file_bytes=file_bytes,
             filename=filename,
         )
-        
+
+        persist_image_chunks(
+            documents=documents,
+            document_id=document_id,
+            settings=settings,
+        )
+
         stored_chunk_ids = store_documents(
             document_id=document_id,
             documents=documents,

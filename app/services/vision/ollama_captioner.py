@@ -8,15 +8,15 @@ settings = get_settings()
 VISION_MODEL = settings.vision_model
 
 IMAGE_CAPTION_PROMPT = """
-Describe this image for retrieval in a document RAG system.
+You are describing an image embedded in a document, for a retrieval system.
+{context_block}{ocr_block}
+Use the surrounding context and OCR only to disambiguate what you see. Do not
+invent facts that are not visible in the image. Respond in exactly two sections:
 
-Focus on:
-- visible objects, diagrams, charts, tables, or UI elements
-- any readable text
-- what the image is explaining
-- facts a user might search for later
-
-Be concise, specific, and factual.
+VISIBLE TEXT: transcribe verbatim any text, numbers, labels, axis values, or
+units readable in the image. If there is none, write "none".
+DESCRIPTION: concisely and factually describe the objects, diagrams, charts,
+tables, or UI shown, and what the image conveys.
 """
 
 
@@ -27,7 +27,30 @@ def decode_base64_image(image_base64: str) -> bytes:
     return base64.b64decode(image_base64)
 
 
-def caption_image_base64(image_base64: str | None) -> str | None:
+def build_caption_prompt(context_text: str | None, ocr_text: str | None) -> str:
+    context_block = ""
+    if context_text:
+        context_block = (
+            f"\nSurrounding document context:\n\"\"\"{context_text}\"\"\"\n"
+        )
+
+    ocr_block = ""
+    if ocr_text:
+        ocr_block = (
+            f"\nText detected by OCR (may be imperfect):\n\"\"\"{ocr_text}\"\"\"\n"
+        )
+
+    return IMAGE_CAPTION_PROMPT.format(
+        context_block=context_block,
+        ocr_block=ocr_block,
+    )
+
+
+def caption_image_base64(
+    image_base64: str | None,
+    context_text: str | None = None,
+    ocr_text: str | None = None,
+) -> str | None:
     if not image_base64:
         return None
 
@@ -38,7 +61,7 @@ def caption_image_base64(image_base64: str | None) -> str | None:
         messages=[
             {
                 "role": "user",
-                "content": IMAGE_CAPTION_PROMPT,
+                "content": build_caption_prompt(context_text, ocr_text),
                 "images": [image_bytes],
             }
         ],

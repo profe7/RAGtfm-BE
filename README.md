@@ -54,8 +54,9 @@ GPU : Nvidia Geforce RTX 4090 24GB
 - [x] Source order tracking and source location metadata (page number, coordinates)
 - [x] Chunking by detected titles with separate handling for text, table, and image chunks
 - [x] Table metadata preservation with HTML representation
-- [x] Image payload extraction and captioning with Ollama vision model
-- [x] Embedding text preparation for text, table, and image (caption-based) chunks
+- [x] Context-aware image captioning: surrounding-text context and Tesseract OCR are fed to the Ollama vision model, which returns a structured caption (verbatim visible text + interpretation)
+- [x] Embedding text preparation combining caption and OCR for image chunks, so lexical search can match exact labels and values
+- [x] Original image bytes persisted to S3 (`images/{document_id}/{chunk_id}.png`) for grounded multimodal answer generation
 - [x] Text embeddings with Ollama `nomic-embed-text`
 - [x] Persistent vector storage in ChromaDB with serialized nested metadata
 - [x] Duplicate upload detection
@@ -67,6 +68,11 @@ GPU : Nvidia Geforce RTX 4090 24GB
 - [x] Cross-encoder reranking with `sentence-transformers`
 - [x] Optional filtering by specific `document_ids` in retrieval and RAG query
 - [x] Retrieval diagnostics: dense rank, BM25 rank, RRF score, rerank score, rerank rank
+
+### Generation
+- [x] Streaming grounded answers from the Ollama generation model with inline source citations
+- [x] Multimodal generation: the original image is attached for retrieved image chunks, so answers are grounded in the image rather than only its caption (toggle with `enable_image_generation`)
+- [x] Faithfulness-hardened system prompt that answers "I do not know" rather than substituting a related-but-different fact
 
 ### Documents
 - [x] Document listing endpoint (per-user)
@@ -114,7 +120,7 @@ GPU : Nvidia Geforce RTX 4090 24GB
 3. Retrieve lexical candidates with BM25 (same filters applied)
 4. Merge candidates with Reciprocal Rank Fusion (RRF)
 5. Rerank fused candidates with a cross-encoder
-6. Send final context chunks to the generation model
+6. Send final context chunks to the generation model, attaching the original image for image chunks so answers are grounded in the image and not only its caption
 
 ## Current Limitations
 

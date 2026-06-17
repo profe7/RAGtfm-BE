@@ -18,8 +18,10 @@ class Settings(BaseSettings):
 
     ollama_base_url: str = "http://ollama:11434"
     embedding_model: str = "nomic-embed-text"
-    generation_model: str = "gemma4:latest"
-    vision_model: str = "gemma4:latest"
+    generation_model: str = "qwen3.5:latest"
+    vision_model: str = "qwen3.5:latest"
+    vision_context_max_chars: int = 800
+    enable_image_generation: bool = True
 
     chroma_host: str = "chroma"
     chroma_port: int = 8000
