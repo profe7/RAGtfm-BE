@@ -1,4 +1,5 @@
 import json
+from functools import lru_cache
 
 import chromadb
 from langchain_core.documents import Document
@@ -11,6 +12,7 @@ settings = get_settings()
 COLLECTION_NAME = settings.chroma_collection_name
 
 
+@lru_cache(maxsize=1)
 def get_chroma_client():
     return chromadb.HttpClient(
         host=settings.chroma_host,
@@ -27,6 +29,25 @@ def get_chroma_collection():
             "hnsw:space": "cosine",
         },
     )
+
+
+def build_chroma_where_filter(
+    reference_doc: str | None = None,
+    user_id: str | None = None,
+    document_ids: list[str] | None = None,
+) -> dict | None:
+    conditions = []
+    if reference_doc:
+        conditions.append({"filename": reference_doc})
+    if user_id:
+        conditions.append({"user_id": user_id})
+    if document_ids:
+        conditions.append({"document_id": {"$in": document_ids}})
+    if not conditions:
+        return None
+    if len(conditions) == 1:
+        return conditions[0]
+    return {"$and": conditions}
 
 
 def serialize_metadata(metadata: dict) -> dict:

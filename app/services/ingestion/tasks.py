@@ -2,6 +2,7 @@ import logging
 
 from app.core.celery_app import celery_app
 from app.core.config import get_settings
+from app.core.constants import DocumentStatus
 from app.db.session import SessionLocal
 from app.services.documents.document_catalog import update_document_status
 from app.services.documents.document_storage import download_document_from_s3_storage
@@ -17,7 +18,7 @@ settings = get_settings()
 def process_document_task(self, document_id: str, storage_path: str, filename: str, user_id: str):
     db = SessionLocal()
     try:
-        result = update_document_status(db=db, document_id=document_id, status="PROCESSING")
+        result = update_document_status(db=db, document_id=document_id, status=DocumentStatus.PROCESSING)
         if result is None:
             logger.warning(f"Document {document_id} no longer exists, aborting task")
             return
@@ -25,7 +26,7 @@ def process_document_task(self, document_id: str, storage_path: str, filename: s
         publish_document_event(
             user_id=user_id,
             document_id=document_id,
-            status="PROCESSING",
+            status=DocumentStatus.PROCESSING,
         )
         
         logger.info(f"Downloading {filename} from S3 path: {storage_path}")
@@ -53,7 +54,7 @@ def process_document_task(self, document_id: str, storage_path: str, filename: s
         update_document_status(
             db=db,
             document_id=document_id,
-            status="READY",
+            status=DocumentStatus.READY,
             chunk_count=len(documents),
             stored_chunk_count=len(stored_chunk_ids)
         )
@@ -63,7 +64,7 @@ def process_document_task(self, document_id: str, storage_path: str, filename: s
         publish_document_event(
             user_id=user_id,
             document_id=document_id,
-            status="READY",
+            status=DocumentStatus.READY,
             chunk_count=len(documents),
             stored_chunk_count=len(stored_chunk_ids),
         )
@@ -78,13 +79,13 @@ def process_document_task(self, document_id: str, storage_path: str, filename: s
             update_document_status(
                 db=db,
                 document_id=document_id,
-                status="FAILED"
+                status=DocumentStatus.FAILED,
             )
             publish_document_event(
                 user_id=user_id,
                 document_id=document_id,
-                status="FAILED",
+                status=DocumentStatus.FAILED,
             )
-            raise e
+            raise
     finally:
         db.close()

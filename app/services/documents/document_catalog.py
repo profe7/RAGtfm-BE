@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 
+from app.core.constants import DocumentStatus
 from app.db.models import DocumentRecord
 
 
@@ -9,7 +10,7 @@ def create_document_record(
     chunk_count: int,
     stored_chunk_count: int,
     user_id: str,
-    status: str = "PROCESSING",
+    status: str = DocumentStatus.PROCESSING,
 ) -> DocumentRecord:
     document = DocumentRecord(
         user_id=user_id,

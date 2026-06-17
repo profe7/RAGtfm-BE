@@ -1,36 +1,22 @@
 from app.services.embeddings.ollama_embedder import embed_query_text
-from app.services.vectorstores.chroma_store import get_chroma_collection
+from app.services.vectorstores.chroma_store import build_chroma_where_filter, get_chroma_collection
 
 
 def retrieve_relevant_chunks(
     query: str,
     limit: int = 5,
     reference_doc: str | None = None,
-    user_id: str = None,
+    user_id: str | None = None,
     document_ids: list[str] | None = None,
 ) -> list[dict]:
     collection = get_chroma_collection()
     query_embedding = embed_query_text(query)
 
-    conditions = []
-    if reference_doc:
-        conditions.append({
-            "filename": reference_doc,
-        })
-    if user_id:
-        conditions.append({
-            "user_id": user_id,
-        })
-    if document_ids:
-        conditions.append({"document_id": {"$in": document_ids}})
-
-    where = None
-    if len(conditions) == 1:
-        where = conditions[0]
-    elif len(conditions) > 1:
-        where = {
-            "$and": conditions,
-        }
+    where = build_chroma_where_filter(
+        reference_doc=reference_doc,
+        user_id=user_id,
+        document_ids=document_ids,
+    )
 
     results = collection.query(
         query_embeddings=[query_embedding],

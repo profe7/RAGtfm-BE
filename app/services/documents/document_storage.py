@@ -1,11 +1,18 @@
-import hashlib
+from functools import lru_cache
 from uuid import UUID
 
 import boto3
 
 
-def calculate_sha256(file_bytes: bytes) -> str:
-    return hashlib.sha256(file_bytes).hexdigest()
+@lru_cache(maxsize=1)
+def _get_s3_client(endpoint_url: str, access_key_id: str, secret_access_key: str, region: str):
+    return boto3.client(
+        "s3",
+        endpoint_url=endpoint_url,
+        aws_access_key_id=access_key_id,
+        aws_secret_access_key=secret_access_key,
+        region_name=region,
+    )
 
 
 def save_document_to_s3_storage(
@@ -23,13 +30,7 @@ def save_document_to_s3_storage(
     document_id_value = str(document_id)
     object_key = f"documents/{document_id_value}.pdf"
 
-    client = boto3.client(
-        "s3",
-        endpoint_url=endpoint_url,
-        aws_access_key_id=access_key_id,
-        aws_secret_access_key=secret_access_key,
-        region_name=region,
-    )
+    client = _get_s3_client(endpoint_url, access_key_id, secret_access_key, region)
 
     put_object_kwargs = {
         "Bucket": bucket_name,
@@ -58,6 +59,7 @@ def save_uploaded_document(
     document_id: UUID,
     original_filename: str,
     content_type: str,
+    sha256: str,
     s3_endpoint_url: str,
     s3_access_key_id: str,
     s3_secret_access_key: str,
@@ -83,9 +85,10 @@ def save_uploaded_document(
         "original_filename": original_filename,
         "content_type": content_type,
         "size_bytes": len(file_bytes),
-        "sha256": calculate_sha256(file_bytes),
+        "sha256": sha256,
         **storage_result,
     }
+
 
 def delete_document_from_s3_storage(
     storage_path: str,
@@ -96,13 +99,7 @@ def delete_document_from_s3_storage(
     region: str,
     s3_expected_bucket_owner: str | None,
 ) -> bool:
-    client = boto3.client(
-        "s3",
-        endpoint_url=endpoint_url,
-        aws_access_key_id=access_key_id,
-        aws_secret_access_key=secret_access_key,
-        region_name=region,
-    )
+    client = _get_s3_client(endpoint_url, access_key_id, secret_access_key, region)
 
     delete_object_kwargs = {
         "Bucket": bucket_name,
@@ -126,14 +123,7 @@ def download_document_from_s3_storage(
     region: str,
     s3_expected_bucket_owner: str | None = None,
 ) -> bytes:
-    
-    client = boto3.client(
-        "s3",
-        endpoint_url=endpoint_url,
-        aws_access_key_id=access_key_id,
-        aws_secret_access_key=secret_access_key,
-        region_name=region,
-    )
+    client = _get_s3_client(endpoint_url, access_key_id, secret_access_key, region)
 
     get_object_kwargs = {
         "Bucket": bucket_name,

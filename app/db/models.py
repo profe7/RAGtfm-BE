@@ -4,6 +4,7 @@ from uuid import uuid4
 from sqlalchemy import DateTime, Integer, String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.constants import DocumentStatus
 from app.db.session import Base
 
 class UserRecord(Base):
@@ -46,7 +47,7 @@ class DocumentRecord(Base):
     storage_uri: Mapped[str] = mapped_column(String, nullable=False)
     storage_path: Mapped[str] = mapped_column(String, nullable=False)
 
-    status: Mapped[str] = mapped_column(String, nullable=False, default="PROCESSING")
+    status: Mapped[str] = mapped_column(String, nullable=False, default=DocumentStatus.PROCESSING)
     chunk_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     stored_chunk_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 

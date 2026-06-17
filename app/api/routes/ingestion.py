@@ -1,16 +1,14 @@
 import hashlib
 from typing import Annotated
 from uuid import uuid4
-from fastapi import APIRouter, File, HTTPException, UploadFile
-from app.services.pdf_loader import extract_pdf_documents_by_title
-from app.services.vectorstores.chroma_store import store_documents
-from app.core.config import get_settings
-from app.services.documents.document_storage import save_uploaded_document
-from fastapi import Depends
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
+from app.core.config import get_settings
+from app.core.constants import DocumentStatus
 from app.db.session import get_db
 from app.db.models import UserRecord, DocumentRecord
 from app.services.documents.document_catalog import create_document_record, get_document_by_checksum
+from app.services.documents.document_storage import save_uploaded_document
 from app.schemas.ingestion import IngestPdfResponse
 from app.services.ingestion.tasks import process_document_task
 from app.api.deps import get_current_user
@@ -50,7 +48,7 @@ async def ingest_pdf(
 
     sha256 = hashlib.sha256(file_bytes).hexdigest()
     existing = get_document_by_checksum(db, user_id=current_user.id, sha256=sha256)
-    if existing and existing.status != "FAILED":
+    if existing and existing.status != DocumentStatus.FAILED:
         raise HTTPException(
             status_code=409,
             detail={
@@ -62,7 +60,7 @@ async def ingest_pdf(
     
     queued_count = db.query(DocumentRecord).filter(
         DocumentRecord.user_id == current_user.id,
-        DocumentRecord.status.in_(["QUEUED", "PROCESSING"])
+        DocumentRecord.status.in_([DocumentStatus.QUEUED, DocumentStatus.PROCESSING])
     ).count()
 
     if queued_count >= 5:
@@ -78,6 +76,7 @@ async def ingest_pdf(
         document_id=document_id,
         original_filename=file.filename or "uploaded.pdf",
         content_type=file.content_type or "application/pdf",
+        sha256=sha256,
         s3_endpoint_url=settings.s3_endpoint_url,
         s3_access_key_id=settings.s3_access_key_id,
         s3_secret_access_key=settings.s3_secret_access_key,
@@ -91,7 +90,7 @@ async def ingest_pdf(
         document_metadata=document_metadata,
         chunk_count=0,
         stored_chunk_count=0,
-        status="QUEUED",
+        status=DocumentStatus.QUEUED,
         user_id=current_user.id,
     )
 
@@ -106,7 +105,7 @@ async def ingest_pdf(
         "document_id": str(document_id),
         "document": document_metadata,
         "filename": file.filename,
-        "status": "QUEUED",
+        "status": DocumentStatus.QUEUED,
         "chunk_count": 0,
         "stored_chunk_count": 0,
         "stored_chunk_ids": [],

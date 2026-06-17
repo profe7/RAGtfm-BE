@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy.orm import Session
 from app.core.config import get_settings
+from app.core.constants import DocumentStatus
 from app.db.session import get_db
 from app.schemas.documents import (
     DeleteDocumentResponse,
@@ -95,7 +96,7 @@ def delete_document(
             detail="Document not found",
         )
     
-    if document.status == "PROCESSING":
+    if document.status == DocumentStatus.PROCESSING:
         raise HTTPException(
             status_code=409,
             detail="Cannot delete a document that is currently being processed.",
