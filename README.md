@@ -1,5 +1,7 @@
 # RAGtfm-BE
 
+[![CI](https://github.com/profe7/RAGtfm-BE/actions/workflows/ci.yml/badge.svg)](https://github.com/profe7/RAGtfm-BE/actions/workflows/ci.yml)
+
 Containerized FastAPI backend for a multimodal RAG pipeline over PDF documents. The system ingests PDFs, stores originals in S3-compatible object storage, tracks documents in PostgreSQL, partitions and chunks content, captions image chunks, embeds content with Ollama, stores vectors in ChromaDB, retrieves with hybrid search, reranks results, and generates grounded answers. Users authenticate with JWT tokens and all documents are scoped per user.
 
 ## Architecture
