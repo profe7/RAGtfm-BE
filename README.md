@@ -81,6 +81,11 @@ GPU : Nvidia Geforce RTX 4090 24GB
 - [x] Document detail endpoint
 - [x] Document deletion across PostgreSQL, ChromaDB, and object storage
 
+### Real-time Events
+- [x] Server-Sent Events (SSE) stream for live document ingestion status (`PENDING` → `READY` / `FAILED`)
+- [x] Per-user event channels backed by Redis pub/sub
+- [x] Ticket-based SSE authentication: since `EventSource` cannot send an `Authorization` header, the client trades its JWT for a short-lived, single-use ticket, so the long-lived token never appears in a URL, access log, or browser history
+
 ### Evaluation
 - [x] Evaluation endpoint for test metrics
 - [x] Test dataset support for PDF question-answer evaluation
@@ -97,6 +102,8 @@ GPU : Nvidia Geforce RTX 4090 24GB
 | `GET` | `/documents` | List all documents for the current user |
 | `GET` | `/documents/{document_id}` | Get metadata for a specific document |
 | `DELETE` | `/documents/{document_id}` | Delete a document and all associated resources |
+| `POST` | `/documents/events/ticket` | Mint a short-lived, single-use ticket for the SSE stream |
+| `GET` | `/documents/events` | Stream live document status updates via SSE (authenticated with a ticket) |
 | `GET` | `/retrieve/chunks` | Retrieve relevant chunks for a query |
 | `POST` | `/rag/query` | Retrieve context and generate a grounded answer |
 | `GET` | `/test/metrics` | Run the evaluation dataset and return metrics |
@@ -123,6 +130,16 @@ GPU : Nvidia Geforce RTX 4090 24GB
 4. Merge candidates with Reciprocal Rank Fusion (RRF)
 5. Rerank fused candidates with a cross-encoder
 6. Send final context chunks to the generation model, attaching the original image for image chunks so answers are grounded in the image and not only its caption
+
+## Real-time Status Stream
+
+Document ingestion runs asynchronously, so the client subscribes to an SSE stream to watch each document move from `PENDING` to `READY` / `FAILED` without polling.
+
+1. `POST /documents/events/ticket` with the normal `Authorization: Bearer <jwt>` header
+2. Receive a short-lived, single-use ticket (TTL configurable via `SSE_TICKET_TTL_SECONDS`, default 30s)
+3. Open `EventSource("/documents/events?ticket=<ticket>")` — the ticket is validated and atomically consumed (`GETDEL`) so it cannot be replayed
+4. Receive `document_status` events from the user's Redis pub/sub channel as ingestion progresses
+5. On reconnect, mint a fresh ticket (the previous one is already consumed)
 
 ## Current Limitations
 

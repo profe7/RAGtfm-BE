@@ -9,6 +9,7 @@ class Settings(BaseSettings):
 
     secret_key: str = "supersecretkeywohooyoushouldchangethisinproduction"
     access_token_expire_minutes: int = 60 * 24 * 7
+    sse_ticket_ttl_seconds: int = 30
 
     max_file_size_mb: int = 10
 

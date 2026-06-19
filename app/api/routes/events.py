@@ -1,15 +1,13 @@
 import asyncio
 
-import jwt
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
 from sse_starlette.sse import EventSourceResponse
 
+from app.api.deps import get_current_user
 from app.core.config import get_settings
-from app.core.security import decode_access_token
-from app.db.models import TokenDenylistRecord, UserRecord
-from app.db.session import get_db
+from app.db.models import UserRecord
+from app.services.events.sse_tickets import consume_sse_ticket, create_sse_ticket
 
 router = APIRouter(
     prefix="/documents",
@@ -19,42 +17,32 @@ router = APIRouter(
 settings = get_settings()
 
 
-def authenticate_token_string(token: str, db: Session) -> UserRecord:
-    """Validate a raw token string — used for SSE since EventSource can't set headers."""
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-    )
-    try:
-        payload = decode_access_token(token)
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
-    except jwt.PyJWTError:
-        raise credentials_exception
+@router.post("/events/ticket")
+async def create_event_ticket(
+    current_user: UserRecord = Depends(get_current_user),
+):
+    """Mint a short-lived, single-use ticket for opening an SSE connection.
 
-    jti: str | None = payload.get("jti")
-    if jti is not None:
-        denied = db.query(TokenDenylistRecord).filter(
-            TokenDenylistRecord.jti == jti
-        ).first()
-        if denied is not None:
-            raise credentials_exception
-
-    user = db.query(UserRecord).filter(UserRecord.id == user_id).first()
-    if user is None:
-        raise credentials_exception
-
-    return user
+    EventSource cannot send an Authorization header, so the client authenticates
+    here with its normal Bearer token and gets back a ticket to pass as a query
+    param to /documents/events. This keeps the long-lived JWT out of URLs, access
+    logs, and browser history — only a disposable ticket is ever exposed there.
+    """
+    ticket = await create_sse_ticket(str(current_user.id))
+    return {"ticket": ticket, "expires_in": settings.sse_ticket_ttl_seconds}
 
 
 @router.get("/events")
 async def document_events(
-    token: str = Query(..., description="JWT access token"),
-    db: Session = Depends(get_db),
+    ticket: str = Query(..., description="Single-use SSE ticket from /documents/events/ticket"),
 ):
-    user = authenticate_token_string(token, db)
-    user_id = str(user.id)
+    user_id = await consume_sse_ticket(ticket)
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired SSE ticket",
+        )
+
     channel = f"document_events:{user_id}"
 
     async def event_generator():
