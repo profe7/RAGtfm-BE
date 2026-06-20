@@ -18,13 +18,6 @@ def persist_image_chunks(
     document_id: str,
     settings: Settings,
 ) -> None:
-    """Upload image-chunk bytes to S3 and record the storage path on each chunk.
-
-    Mirrors the ``f"{document_id}-c{index}"`` chunk-id scheme used by
-    ``store_documents`` so keys stay aligned with the stored chunks. The raw
-    base64 is dropped from Chroma metadata, so S3 becomes the source of the
-    image bytes for generation-time grounding.
-    """
     client = _get_s3_client(
         settings.s3_endpoint_url,
         settings.s3_access_key_id,

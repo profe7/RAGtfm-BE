@@ -10,13 +10,6 @@ _TICKET_PREFIX = "sse_ticket:"
 
 
 async def create_sse_ticket(user_id: str) -> str:
-    """Mint a single-use, short-lived ticket that authorizes one SSE connection.
-
-    EventSource cannot send an Authorization header, so instead of putting the
-    long-lived JWT in the URL, the client trades its Bearer token for one of these
-    tickets. The ticket is high-entropy, expires within seconds, and is consumed on
-    first use, so a leaked URL is worthless almost immediately.
-    """
     ticket = secrets.token_urlsafe(32)
     r = aioredis.from_url(settings.redis_url)
     try:
@@ -31,11 +24,6 @@ async def create_sse_ticket(user_id: str) -> str:
 
 
 async def consume_sse_ticket(ticket: str) -> str | None:
-    """Atomically validate and invalidate a ticket, returning its user_id or None.
-
-    GETDEL makes the lookup-and-delete a single atomic op, so a ticket can be
-    redeemed exactly once even if two connections race on it.
-    """
     r = aioredis.from_url(settings.redis_url)
     try:
         user_id = await r.getdel(f"{_TICKET_PREFIX}{ticket}")

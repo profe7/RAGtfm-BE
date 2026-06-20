@@ -12,7 +12,6 @@ class FakeAsyncRedis:
         self._store = store
 
     async def set(self, key, value, ex=None):
-        # Real Redis stores bytes; mirror that so the decode path is exercised.
         self._store[key] = value.encode() if isinstance(value, str) else value
 
     async def getdel(self, key):
@@ -54,7 +53,7 @@ def test_consume_sse_ticket_returns_user_and_is_single_use(fake_redis):
     second = asyncio.run(sse_tickets.consume_sse_ticket(ticket))
 
     assert first == "user-123"
-    assert second is None  # consumed on first use, cannot be replayed
+    assert second is None
 
 
 def test_consume_unknown_ticket_returns_none(fake_redis):

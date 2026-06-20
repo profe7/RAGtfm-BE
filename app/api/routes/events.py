@@ -21,13 +21,6 @@ settings = get_settings()
 async def create_event_ticket(
     current_user: UserRecord = Depends(get_current_user),
 ):
-    """Mint a short-lived, single-use ticket for opening an SSE connection.
-
-    EventSource cannot send an Authorization header, so the client authenticates
-    here with its normal Bearer token and gets back a ticket to pass as a query
-    param to /documents/events. This keeps the long-lived JWT out of URLs, access
-    logs, and browser history — only a disposable ticket is ever exposed there.
-    """
     ticket = await create_sse_ticket(str(current_user.id))
     return {"ticket": ticket, "expires_in": settings.sse_ticket_ttl_seconds}
 

@@ -8,11 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 def ocr_image_bytes(image_bytes: bytes | None) -> str:
-    """Extract readable text from an image with Tesseract.
-
-    Returns the whitespace-normalized text, or an empty string if OCR fails
-    or the image contains no text.
-    """
     if not image_bytes:
         return ""
 

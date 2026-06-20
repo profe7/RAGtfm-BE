@@ -35,12 +35,6 @@ def build_image_context(
     window: int = 2,
     max_chars: int = settings.vision_context_max_chars,
 ) -> str:
-    """Collect the text from elements neighbouring an image in reading order.
-
-    Looks at up to ``window`` text-bearing elements before and after the image,
-    preferring elements on the same page, and returns their concatenated text
-    truncated to ``max_chars``.
-    """
     try:
         image_index = elements.index(image_element)
     except ValueError:

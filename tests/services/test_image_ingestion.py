@@ -30,8 +30,8 @@ def test_build_image_context_collects_neighbours_within_window():
 
     assert "Text before the image." in context
     assert "Figure 1: a chart." in context
-    assert "Text after the image." not in context  # 2nd element after, outside window=1
-    assert "Section 1" not in context  # 2nd element before, outside window=1
+    assert "Text after the image." not in context
+    assert "Section 1" not in context
 
 
 def test_build_image_context_prefers_same_page():

@@ -27,7 +27,7 @@ def auth_client(client, mock_user):
 
 def test_create_event_ticket_returns_ticket(auth_client, monkeypatch):
     async def fake_create(user_id):
-        assert user_id == "1"  # str(current_user.id)
+        assert user_id == "1"
         return "ticket-abc"
 
     monkeypatch.setattr(events, "create_sse_ticket", fake_create)
@@ -49,7 +49,7 @@ def test_create_event_ticket_requires_auth(client):
 
 def test_events_rejects_invalid_ticket(client, monkeypatch):
     async def fake_consume(ticket):
-        return None  # expired, already used, or never issued
+        return None
 
     monkeypatch.setattr(events, "consume_sse_ticket", fake_consume)
 
@@ -62,4 +62,4 @@ def test_events_rejects_invalid_ticket(client, monkeypatch):
 def test_events_requires_ticket(client):
     response = client.get("/api/v1/documents/events")
 
-    assert response.status_code == 422  # missing required query param
+    assert response.status_code == 422
