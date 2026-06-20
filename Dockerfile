@@ -19,10 +19,19 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-COPY app ./app
-COPY README.md ./README.md
-COPY alembic.ini ./alembic.ini
-COPY alembic ./alembic
+RUN groupadd --system app \
+    && useradd --system --gid app --create-home --home-dir /home/app app
+
+COPY --chown=app:app app ./app
+COPY --chown=app:app README.md ./README.md
+COPY --chown=app:app alembic.ini ./alembic.ini
+COPY --chown=app:app alembic ./alembic
+
+ENV HOME=/home/app
+ENV HF_HOME=/home/app/.cache/huggingface
+RUN chown -R app:app /app /home/app
+
+USER app
 
 EXPOSE 8000
 
