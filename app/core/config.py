@@ -1,5 +1,7 @@
 from functools import lru_cache
+from secrets import token_urlsafe
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -7,7 +9,10 @@ class Settings(BaseSettings):
     app_name: str = "RAGtfm API"
     app_version: str = "0.1.0"
 
-    secret_key: str = "supersecretkeywohooyoushouldchangethisinproduction"
+    # No secret is committed to source. Set SECRET_KEY in the (gitignored)
+    # .env.docker for a stable signing key; otherwise a random one is generated
+    # per process (fine for tests/dev — tokens just don't survive a restart).
+    secret_key: str = Field(default_factory=lambda: token_urlsafe(32))
     access_token_expire_minutes: int = 60 * 24 * 7
     sse_ticket_ttl_seconds: int = 30
 

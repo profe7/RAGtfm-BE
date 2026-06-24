@@ -1,4 +1,5 @@
 import time
+from collections.abc import Callable
 from typing import Any
 
 import boto3
@@ -20,95 +21,64 @@ router = APIRouter(
 settings = get_settings()
 
 
-def check_postgres() -> dict[str, Any]:
+def _probe_postgres() -> None:
+    with SessionLocal() as db:
+        db.execute(text("SELECT 1"))
+
+
+def _probe_redis() -> None:
+    client = redis.Redis.from_url(
+        settings.redis_url,
+        socket_connect_timeout=2,
+        socket_timeout=2,
+    )
+    client.ping()
+
+
+def _probe_chroma() -> None:
+    client = chromadb.HttpClient(
+        host=settings.chroma_host,
+        port=settings.chroma_port,
+    )
+    client.heartbeat()
+
+
+def _probe_s3() -> None:
+    client = boto3.client(
+        "s3",
+        endpoint_url=settings.s3_endpoint_url,
+        aws_access_key_id=settings.s3_access_key_id,
+        aws_secret_access_key=settings.s3_secret_access_key,
+        region_name=settings.s3_region,
+        config=Config(
+            connect_timeout=2,
+            read_timeout=2,
+            retries={"max_attempts": 1},
+        ),
+    )
+    head_bucket_kwargs = {"Bucket": settings.s3_bucket_name}
+    if settings.s3_expected_bucket_owner:
+        head_bucket_kwargs["ExpectedBucketOwner"] = settings.s3_expected_bucket_owner
+    client.head_bucket(**head_bucket_kwargs)
+
+
+def _probe_ollama() -> None:
+    ollama_client.list()
+
+
+HEALTH_PROBES: dict[str, Callable[[], None]] = {
+    "postgres": _probe_postgres,
+    "redis": _probe_redis,
+    "chroma": _probe_chroma,
+    "s3": _probe_s3,
+    "ollama": _probe_ollama,
+}
+
+
+def _run_check(probe: Callable[[], None]) -> dict[str, Any]:
     start = time.perf_counter()
     try:
-        with SessionLocal() as db:
-            db.execute(text("SELECT 1"))
-        return {
-            "ok": True,
-            "latency_ms": round((time.perf_counter() - start) * 1000, 2),
-        }
-    except Exception as exc:
-        return {
-            "ok": False,
-            "error": exc.__class__.__name__,
-        }
-
-
-def check_redis() -> dict[str, Any]:
-    start = time.perf_counter()
-    try:
-        client = redis.Redis.from_url(
-            settings.redis_url,
-            socket_connect_timeout=2,
-            socket_timeout=2,
-        )
-        client.ping()
-        return {
-            "ok": True,
-            "latency_ms": round((time.perf_counter() - start) * 1000, 2),
-        }
-    except Exception as exc:
-        return {
-            "ok": False,
-            "error": exc.__class__.__name__,
-        }
-
-
-def check_chroma() -> dict[str, Any]:
-    start = time.perf_counter()
-    try:
-        client = chromadb.HttpClient(
-            host=settings.chroma_host,
-            port=settings.chroma_port,
-        )
-        client.heartbeat()
-        return {
-            "ok": True,
-            "latency_ms": round((time.perf_counter() - start) * 1000, 2),
-        }
-    except Exception as exc:
-        return {
-            "ok": False,
-            "error": exc.__class__.__name__,
-        }
-
-
-def check_s3() -> dict[str, Any]:
-    start = time.perf_counter()
-    try:
-        client = boto3.client(
-            "s3",
-            endpoint_url=settings.s3_endpoint_url,
-            aws_access_key_id=settings.s3_access_key_id,
-            aws_secret_access_key=settings.s3_secret_access_key,
-            region_name=settings.s3_region,
-            config=Config(
-                connect_timeout=2,
-                read_timeout=2,
-                retries={"max_attempts": 1},
-            ),
-        )
-        head_bucket_kwargs = {"Bucket": settings.s3_bucket_name}
-        if settings.s3_expected_bucket_owner:
-            head_bucket_kwargs["ExpectedBucketOwner"] = settings.s3_expected_bucket_owner
-        client.head_bucket(**head_bucket_kwargs)
-        return {
-            "ok": True,
-            "latency_ms": round((time.perf_counter() - start) * 1000, 2),
-        }
-    except Exception as exc:
-        return {
-            "ok": False,
-            "error": exc.__class__.__name__,
-        }
-
-
-def check_ollama() -> dict[str, Any]:
-    start = time.perf_counter()
-    try:
-        ollama_client.list()
+        probe()
         return {
             "ok": True,
             "latency_ms": round((time.perf_counter() - start) * 1000, 2),
@@ -127,13 +97,7 @@ def live() -> dict[str, str]:
 
 @router.get("/ready")
 def ready(response: Response) -> dict[str, Any]:
-    checks = {
-        "postgres": check_postgres(),
-        "redis": check_redis(),
-        "chroma": check_chroma(),
-        "s3": check_s3(),
-        "ollama": check_ollama(),
-    }
+    checks = {name: _run_check(probe) for name, probe in HEALTH_PROBES.items()}
     ready_status = all(check["ok"] for check in checks.values())
 
     if not ready_status:
