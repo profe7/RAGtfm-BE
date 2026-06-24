@@ -12,10 +12,7 @@ def embed_document_texts(texts: list[str]) -> list[list[float]]:
 
     response = ollama_client.embed(
         model=EMBEDDING_MODEL,
-        input=[
-            f"search_document: {text}"
-            for text in texts
-        ],
+        input=[f"search_document: {text}" for text in texts],
     )
 
     return response["embeddings"]

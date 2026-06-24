@@ -33,11 +33,13 @@ def retrieve_relevant_chunks(
     result_distances = results["distances"][0]
 
     for index, chunk_id in enumerate(result_ids):
-        chunks.append({
-            "chunk_id": chunk_id,
-            "text": result_documents[index],
-            "metadata": result_metadatas[index],
-            "distance": result_distances[index],
-        })
+        chunks.append(
+            {
+                "chunk_id": chunk_id,
+                "text": result_documents[index],
+                "metadata": result_metadatas[index],
+                "distance": result_distances[index],
+            }
+        )
 
     return chunks

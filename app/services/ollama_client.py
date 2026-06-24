@@ -1,4 +1,3 @@
-import ollama
 from ollama import AsyncClient, Client
 
 from app.core.config import get_settings

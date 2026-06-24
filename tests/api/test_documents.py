@@ -1,8 +1,9 @@
 import pytest
 
-from app.db.models import UserRecord, DocumentRecord
 from app.api.deps import get_current_user
+from app.db.models import DocumentRecord, UserRecord
 from app.main import app
+
 
 @pytest.fixture
 def mock_user(db_session):
@@ -12,6 +13,7 @@ def mock_user(db_session):
     db_session.refresh(user)
     return user
 
+
 @pytest.fixture
 def auth_client(client, mock_user):
     def override_get_current_user():
@@ -20,6 +22,7 @@ def auth_client(client, mock_user):
     app.dependency_overrides[get_current_user] = override_get_current_user
     yield client
     app.dependency_overrides.clear()
+
 
 @pytest.fixture
 def mock_document(db_session, mock_user):
@@ -33,12 +36,13 @@ def mock_document(db_session, mock_user):
         storage_uri="s3://doc1",
         storage_path="path/to/doc1",
         status="COMPLETED",
-        user_id=mock_user.id
+        user_id=mock_user.id,
     )
     db_session.add(document)
     db_session.commit()
     db_session.refresh(document)
     return document
+
 
 def test_list_documents_empty(auth_client):
     response = auth_client.get("/api/v1/documents/")
@@ -46,6 +50,7 @@ def test_list_documents_empty(auth_client):
     data = response.json()
     assert data["total"] == 0
     assert data["documents"] == []
+
 
 def test_list_documents_with_data(auth_client, mock_document):
     response = auth_client.get("/api/v1/documents")
@@ -55,6 +60,7 @@ def test_list_documents_with_data(auth_client, mock_document):
     assert data["documents"][0]["document_id"] == "doc1"
     assert data["documents"][0]["original_filename"] == "test_document.pdf"
 
+
 def test_get_document_by_id(auth_client, mock_document):
     response = auth_client.get(f"/api/v1/documents/{mock_document.document_id}")
     assert response.status_code == 200
@@ -62,10 +68,12 @@ def test_get_document_by_id(auth_client, mock_document):
     assert data["document_id"] == "doc1"
     assert data["original_filename"] == "test_document.pdf"
 
+
 def test_get_document_by_id_not_found(auth_client):
     response = auth_client.get("/api/v1/documents/nonexistent")
     assert response.status_code == 404
     assert response.json()["detail"] == "Document not found"
+
 
 def test_unauthenticated_access(client):
     response = client.get("/api/v1/documents/")

@@ -2,35 +2,35 @@ from datetime import datetime
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
+
 from app.api.deps import oauth2_scheme
-from app.db.session import get_db
-from app.db.models import TokenDenylistRecord, UserRecord
-from app.schemas.auth import LogoutResponse, UserCreate, UserResponse, Token
 from app.core.security import (
     create_access_token,
     decode_access_token,
     get_password_hash,
     verify_password,
 )
+from app.db.models import TokenDenylistRecord, UserRecord
+from app.db.session import get_db
+from app.schemas.auth import LogoutResponse, Token, UserCreate, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
 
 @router.post("/register", response_model=UserResponse)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
     user = db.query(UserRecord).filter(UserRecord.email == user_in.email).first()
     if user:
         raise HTTPException(status_code=400, detail="Email already registered")
-    
-    new_user = UserRecord(
-        email=user_in.email,
-        hashed_password=get_password_hash(user_in.password)
-    )
+
+    new_user = UserRecord(email=user_in.email, hashed_password=get_password_hash(user_in.password))
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
     return new_user
+
 
 @router.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
@@ -41,9 +41,10 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     access_token = create_access_token(subject=user.id)
     return {"access_token": access_token, "token_type": "bearer"}
+
 
 @router.post("/logout", response_model=LogoutResponse)
 def logout(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -63,9 +64,7 @@ def logout(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     except jwt.PyJWTError:
         raise credentials_exception
 
-    denied_token = db.query(TokenDenylistRecord).filter(
-        TokenDenylistRecord.jti == jti
-    ).first()
+    denied_token = db.query(TokenDenylistRecord).filter(TokenDenylistRecord.jti == jti).first()
     if denied_token is None:
         db.add(
             TokenDenylistRecord(

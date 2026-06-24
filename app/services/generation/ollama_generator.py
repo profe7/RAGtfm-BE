@@ -3,7 +3,7 @@ import logging
 
 from app.core.config import get_settings
 from app.services.documents.document_storage import download_document_from_s3_storage
-from app.services.ollama_client import ollama_async_client, ollama_client
+from app.services.ollama_client import ollama_async_client
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -33,19 +33,11 @@ def format_chunk_for_context(chunk: dict) -> str:
     filename = metadata.get("filename")
     chunk_type = metadata.get("chunk_type")
 
-    return (
-        f"[source: {source_label}]\n"
-        f"filename: {filename}\n"
-        f"type: {chunk_type}\n\n"
-        f"{chunk['text']}"
-    )
+    return f"[source: {source_label}]\nfilename: {filename}\ntype: {chunk_type}\n\n{chunk['text']}"
 
 
 def build_context(chunks: list[dict]) -> str:
-    formatted_chunks = [
-        format_chunk_for_context(chunk)
-        for chunk in chunks
-    ]
+    formatted_chunks = [format_chunk_for_context(chunk) for chunk in chunks]
 
     return "\n\n---\n\n".join(formatted_chunks)
 
@@ -92,10 +84,7 @@ async def generate_answer(query: str, chunks: list[dict]):
 
     user_message: dict = {
         "role": "user",
-        "content": (
-            f"Question:\n{query}\n\n"
-            f"Context:\n{context}"
-        ),
+        "content": (f"Question:\n{query}\n\nContext:\n{context}"),
     }
 
     if images:
@@ -105,13 +94,13 @@ async def generate_answer(query: str, chunks: list[dict]):
         model=GENERATION_MODEL,
         messages=[
             {
-                "role":"system",
-                "content":SYSTEM_PROMPT,
+                "role": "system",
+                "content": SYSTEM_PROMPT,
             },
             user_message,
         ],
         options={
-            "temperature":0,
+            "temperature": 0,
         },
         stream=True,
         think=False,

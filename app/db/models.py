@@ -1,17 +1,16 @@
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from uuid import uuid4
 
-from sqlalchemy import DateTime, Integer, String, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import DateTime, ForeignKey, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.constants import DocumentStatus
 from app.db.session import Base
 
+
 class UserRecord(Base):
     __tablename__ = "users"
-    id: Mapped[str] = mapped_column(
-        String, primary_key=True, default=lambda: str(uuid4())
-    )
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
     email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))

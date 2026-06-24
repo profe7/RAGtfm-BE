@@ -49,13 +49,19 @@ def list_document_records(
     documents = query.offset(skip).limit(limit).all()
     return documents, total
 
-def get_document_record(db: Session, document_id: str, user_id: str = None) -> DocumentRecord | None:
+
+def get_document_record(
+    db: Session, document_id: str, user_id: str | None = None
+) -> DocumentRecord | None:
     query = db.query(DocumentRecord).filter(DocumentRecord.document_id == document_id)
     if user_id:
         query = query.filter(DocumentRecord.user_id == user_id)
     return query.first()
 
-def delete_document_record(db: Session, document_id: str, user_id: str = None) -> DocumentRecord | None:
+
+def delete_document_record(
+    db: Session, document_id: str, user_id: str | None = None
+) -> DocumentRecord | None:
     document = get_document_record(
         db=db,
         document_id=document_id,
@@ -70,20 +76,29 @@ def delete_document_record(db: Session, document_id: str, user_id: str = None) -
 
     return document
 
-def update_document_status(db: Session, document_id: str, status: str, chunk_count: int | None = None, stored_chunk_count: int | None = None, user_id: str = None) -> DocumentRecord | None:
+
+def update_document_status(
+    db: Session,
+    document_id: str,
+    status: str,
+    chunk_count: int | None = None,
+    stored_chunk_count: int | None = None,
+    user_id: str | None = None,
+) -> DocumentRecord | None:
     document = get_document_record(db, document_id, user_id)
     if not document:
         return None
-        
+
     document.status = status
     if chunk_count is not None:
         document.chunk_count = chunk_count
     if stored_chunk_count is not None:
         document.stored_chunk_count = stored_chunk_count
-        
+
     db.commit()
     db.refresh(document)
     return document
+
 
 def get_document_by_checksum(db, user_id: str, sha256: str):
     return (

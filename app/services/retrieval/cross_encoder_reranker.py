@@ -24,20 +24,19 @@ def rerank_chunks(
 
     reranker = get_reranker()
 
-    pairs = [
-        [query, chunk["text"]]
-        for chunk in chunks
-    ]
+    pairs = [[query, chunk["text"]] for chunk in chunks]
 
     scores = reranker.predict(pairs)
 
     scored_chunks = []
 
     for chunk, score in zip(chunks, scores):
-        scored_chunks.append({
-            **chunk,
-            "rerank_score": float(score),
-        })
+        scored_chunks.append(
+            {
+                **chunk,
+                "rerank_score": float(score),
+            }
+        )
 
     ranked_chunks = sorted(
         scored_chunks,

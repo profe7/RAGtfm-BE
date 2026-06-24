@@ -8,7 +8,6 @@ from app.services.ingestion.source_metadata import (
     source_order_range,
 )
 
-
 settings = get_settings()
 
 
@@ -61,7 +60,7 @@ def build_image_context(
     before.reverse()
 
     after: list[str] = []
-    for element in elements[image_index + 1:]:
+    for element in elements[image_index + 1 :]:
         if len(after) >= window:
             break
         page = getattr(element.metadata, "page_number", None)
@@ -157,9 +156,11 @@ def chunk_pdf_elements_by_title(elements, filename: str) -> list[Document]:
         )
 
     documents.sort(
-        key=lambda document: document.metadata["source_order"]["start"]
-        if document.metadata["source_order"]["start"] is not None
-        else float("inf")
+        key=lambda document: (
+            document.metadata["source_order"]["start"]
+            if document.metadata["source_order"]["start"] is not None
+            else float("inf")
+        )
     )
 
     return documents

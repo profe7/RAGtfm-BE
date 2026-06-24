@@ -1,0 +1,10 @@
+line-length = 100
+target-version = "py312"
+exclude = ["alembic/versions"]
+
+[lint]
+select = ["E", "F", "I", "RUF"]
+
+[lint.per-file-ignores]
+"app/services/evaluation/test_datasets.py" = ["E501"]
+"app/services/generation/ollama_generator.py" = ["E501"]

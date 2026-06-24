@@ -1,17 +1,19 @@
 import hashlib
 from typing import Annotated
 from uuid import uuid4
+
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
+
+from app.api.deps import get_current_user
 from app.core.config import get_settings
 from app.core.constants import DocumentStatus
+from app.db.models import DocumentRecord, UserRecord
 from app.db.session import get_db
-from app.db.models import UserRecord, DocumentRecord
+from app.schemas.ingestion import IngestPdfResponse
 from app.services.documents.document_catalog import create_document_record, get_document_by_checksum
 from app.services.documents.document_storage import save_uploaded_document
-from app.schemas.ingestion import IngestPdfResponse
 from app.services.ingestion.tasks import process_document_task
-from app.api.deps import get_current_user
 
 settings = get_settings()
 
@@ -57,11 +59,15 @@ async def ingest_pdf(
                 "status": existing.status,
             },
         )
-    
-    queued_count = db.query(DocumentRecord).filter(
-        DocumentRecord.user_id == current_user.id,
-        DocumentRecord.status.in_([DocumentStatus.QUEUED, DocumentStatus.PROCESSING])
-    ).count()
+
+    queued_count = (
+        db.query(DocumentRecord)
+        .filter(
+            DocumentRecord.user_id == current_user.id,
+            DocumentRecord.status.in_([DocumentStatus.QUEUED, DocumentStatus.PROCESSING]),
+        )
+        .count()
+    )
 
     if queued_count >= 5:
         raise HTTPException(
@@ -110,4 +116,3 @@ async def ingest_pdf(
         "stored_chunk_count": 0,
         "stored_chunk_ids": [],
     }
-

@@ -5,7 +5,6 @@ from fastapi import APIRouter, Query
 from app.schemas.retrieval import RetrieveChunksResponse
 from app.services.retrieval.hybrid_retriever import retrieve_hybrid_chunks
 
-
 router = APIRouter(
     prefix="/retrieve",
     tags=["Retrieval"],

@@ -5,7 +5,6 @@ from fastapi import APIRouter, Query
 from app.services.evaluation.rag_metrics import evaluate_dataset
 from app.services.evaluation.test_datasets import DATASET2
 
-
 router = APIRouter(
     prefix="/test",
     tags=["Test Metrics"],

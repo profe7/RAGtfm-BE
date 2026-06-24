@@ -13,9 +13,7 @@ def normalize_for_embedding(text: str) -> str:
 
 def prepare_text_embedding(document: Document) -> None:
     document.metadata["embedding_content_type"] = "text"
-    document.metadata["embedding_text"] = normalize_for_embedding(
-        document.page_content
-    )
+    document.metadata["embedding_text"] = normalize_for_embedding(document.page_content)
 
 
 def prepare_table_embedding(document: Document) -> None:
@@ -26,9 +24,7 @@ def prepare_table_embedding(document: Document) -> None:
         table_text = ""
 
     document.metadata["embedding_content_type"] = "text"
-    document.metadata["embedding_text"] = normalize_for_embedding(
-        table_text or text_as_html or ""
-    )
+    document.metadata["embedding_text"] = normalize_for_embedding(table_text or text_as_html or "")
 
 
 def prepare_image_embedding(document: Document) -> None:
@@ -50,9 +46,7 @@ def prepare_image_embedding(document: Document) -> None:
     combined = "\n".join(part for part in (image_caption, ocr_text) if part)
 
     document.metadata["embedding_content_type"] = "text"
-    document.metadata["embedding_text"] = normalize_for_embedding(
-        combined or document.page_content
-    )
+    document.metadata["embedding_text"] = normalize_for_embedding(combined or document.page_content)
 
 
 def prepare_embedding_fields(documents: list[Document]) -> list[Document]:

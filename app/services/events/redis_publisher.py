@@ -15,11 +15,13 @@ def publish_document_event(
     stored_chunk_count: int = 0,
 ) -> None:
     r = redis.from_url(settings.redis_url)
-    payload = json.dumps({
-        "document_id": document_id,
-        "status": status,
-        "chunk_count": chunk_count,
-        "stored_chunk_count": stored_chunk_count,
-    })
+    payload = json.dumps(
+        {
+            "document_id": document_id,
+            "status": status,
+            "chunk_count": chunk_count,
+            "stored_chunk_count": stored_chunk_count,
+        }
+    )
     r.publish(f"document_events:{user_id}", payload)
     r.close()

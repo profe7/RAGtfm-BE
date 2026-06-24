@@ -9,6 +9,7 @@ _HYDE_PROMPT = (
     "Question: {query}"
 )
 
+
 def rewrite_query_hyde(query: str) -> str:
     response = ollama_client.chat(
         model=settings.generation_model,

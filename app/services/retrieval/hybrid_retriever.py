@@ -42,7 +42,7 @@ def retrieve_hybrid_chunks(
     candidate_limit: int = 20,
     reference_doc: str | None = None,
     metrics: dict | None = None,
-    user_id: str = None,
+    user_id: str | None = None,
     document_ids: list[str] | None = None,
 ) -> list[dict]:
     if metrics is None:
@@ -79,5 +79,3 @@ def retrieve_hybrid_chunks(
             chunks=fused_candidates,
             limit=limit,
         )
-
-

@@ -30,15 +30,11 @@ def decode_base64_image(image_base64: str) -> bytes:
 def build_caption_prompt(context_text: str | None, ocr_text: str | None) -> str:
     context_block = ""
     if context_text:
-        context_block = (
-            f"\nSurrounding document context:\n\"\"\"{context_text}\"\"\"\n"
-        )
+        context_block = f'\nSurrounding document context:\n"""{context_text}"""\n'
 
     ocr_block = ""
     if ocr_text:
-        ocr_block = (
-            f"\nText detected by OCR (may be imperfect):\n\"\"\"{ocr_text}\"\"\"\n"
-        )
+        ocr_block = f'\nText detected by OCR (may be imperfect):\n"""{ocr_text}"""\n'
 
     return IMAGE_CAPTION_PROMPT.format(
         context_block=context_block,

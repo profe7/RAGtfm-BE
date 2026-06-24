@@ -7,7 +7,6 @@ from langchain_core.documents import Document
 from app.core.config import get_settings
 from app.services.embeddings.ollama_embedder import embed_document_texts
 
-
 settings = get_settings()
 COLLECTION_NAME = settings.chroma_collection_name
 
@@ -99,12 +98,14 @@ def store_documents(
         embedding_inputs.append(embedding_text)
 
         metadatas.append(
-            serialize_metadata({
-                **document.metadata,
-                "document_id": document_id,
-                "chunk_id": chunk_id,
-                "user_id": user_id,
-            })
+            serialize_metadata(
+                {
+                    **document.metadata,
+                    "document_id": document_id,
+                    "chunk_id": chunk_id,
+                    "user_id": user_id,
+                }
+            )
         )
 
     if not ids:
@@ -120,6 +121,7 @@ def store_documents(
     )
 
     return ids
+
 
 def delete_document_chunks(document_id: str) -> None:
     collection = get_chroma_collection()

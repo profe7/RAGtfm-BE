@@ -24,8 +24,7 @@ def source_locations_from_chunk(chunk) -> list[dict]:
         original_elements = [chunk]
 
     return [
-        source_location_from_element(original_element)
-        for original_element in original_elements
+        source_location_from_element(original_element) for original_element in original_elements
     ]
 
 

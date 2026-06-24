@@ -15,21 +15,24 @@ from app.services.vision.image_store import persist_image_chunks
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
+
 @celery_app.task(bind=True, max_retries=3)
 def process_document_task(self, document_id: str, storage_path: str, filename: str, user_id: str):
     db = SessionLocal()
     try:
-        result = update_document_status(db=db, document_id=document_id, status=DocumentStatus.PROCESSING)
+        result = update_document_status(
+            db=db, document_id=document_id, status=DocumentStatus.PROCESSING
+        )
         if result is None:
             logger.warning(f"Document {document_id} no longer exists, aborting task")
             return
-        
+
         publish_document_event(
             user_id=user_id,
             document_id=document_id,
             status=DocumentStatus.PROCESSING,
         )
-        
+
         logger.info(f"Downloading {filename} from S3 path: {storage_path}")
         file_bytes = download_document_from_s3_storage(
             storage_path=storage_path,
@@ -57,13 +60,13 @@ def process_document_task(self, document_id: str, storage_path: str, filename: s
             documents=documents,
             user_id=user_id,
         )
-        
+
         update_document_status(
             db=db,
             document_id=document_id,
             status=DocumentStatus.READY,
             chunk_count=len(documents),
-            stored_chunk_count=len(stored_chunk_ids)
+            stored_chunk_count=len(stored_chunk_ids),
         )
 
         clear_bm25_cache()
@@ -77,9 +80,9 @@ def process_document_task(self, document_id: str, storage_path: str, filename: s
         )
 
         logger.info(f"Successfully processed document {document_id}")
-        
+
     except Exception as e:
-        logger.exception(f"Failed to process document {document_id}: {str(e)}")
+        logger.exception(f"Failed to process document {document_id}: {e!s}")
         try:
             self.retry(countdown=10 * (self.request.retries + 1))
         except self.MaxRetriesExceededError:

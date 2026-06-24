@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import APIRouter, FastAPI
 
 from app.api.routes import auth
 from app.api.routes.documents import router as documents_router
@@ -23,7 +23,7 @@ api_router.include_router(ingestion_router)
 api_router.include_router(retrieval_router)
 api_router.include_router(rag_router)
 api_router.include_router(test_metrics_router)
-api_router.include_router(events_router) 
+api_router.include_router(events_router)
 api_router.include_router(documents_router)
 api_router.include_router(health_router)
 api_router.include_router(auth.router)

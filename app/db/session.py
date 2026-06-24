@@ -3,7 +3,6 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from app.core.config import get_settings
 
-
 settings = get_settings()
 
 engine = create_engine(
@@ -23,7 +22,9 @@ class Base(DeclarativeBase):
 
 
 def init_db() -> None:
-    from app.db import models
+    # Imported for its side effect: defining the model classes registers their
+    # tables on Base.metadata so create_all() below knows what to create.
+    from app.db import models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
 
