@@ -1,22 +1,17 @@
 from app.services.embeddings.ollama_embedder import embed_query_text
+from app.services.retrieval.retrieval_filter import RetrievalFilter
 from app.services.vectorstores.chroma_store import build_chroma_where_filter, get_chroma_collection
 
 
 def retrieve_relevant_chunks(
     query: str,
     limit: int = 5,
-    reference_doc: str | None = None,
-    user_id: str | None = None,
-    document_ids: list[str] | None = None,
+    retrieval_filter: RetrievalFilter | None = None,
 ) -> list[dict]:
     collection = get_chroma_collection()
     query_embedding = embed_query_text(query)
 
-    where = build_chroma_where_filter(
-        reference_doc=reference_doc,
-        user_id=user_id,
-        document_ids=document_ids,
-    )
+    where = build_chroma_where_filter(retrieval_filter)
 
     results = collection.query(
         query_embeddings=[query_embedding],

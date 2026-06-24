@@ -2,6 +2,7 @@ import re
 
 from app.services.generation.ollama_generator import generate_answer
 from app.services.retrieval.hybrid_retriever import retrieve_hybrid_chunks
+from app.services.retrieval.retrieval_filter import RetrievalFilter
 
 
 def normalize_text(text: str) -> str:
@@ -101,7 +102,7 @@ async def evaluate_dataset(dataset: list[dict], k: int = 5) -> dict:
             query=item["question"],
             limit=k,
             candidate_limit=10,
-            reference_doc=item.get("reference_doc"),
+            retrieval_filter=RetrievalFilter(reference_doc=item.get("reference_doc")),
         )
 
         answer_parts = []

@@ -1,6 +1,7 @@
 from app.services.retrieval.bm25_retriever import retrieve_bm25_chunks
 from app.services.retrieval.chroma_retriever import retrieve_relevant_chunks
 from app.services.retrieval.cross_encoder_reranker import rerank_chunks
+from app.services.retrieval.retrieval_filter import RetrievalFilter
 from app.utils.timing import timed_stage
 
 
@@ -40,10 +41,8 @@ def retrieve_hybrid_chunks(
     dense_query: str | None = None,
     limit: int = 5,
     candidate_limit: int = 20,
-    reference_doc: str | None = None,
+    retrieval_filter: RetrievalFilter | None = None,
     metrics: dict | None = None,
-    user_id: str | None = None,
-    document_ids: list[str] | None = None,
 ) -> list[dict]:
     if metrics is None:
         metrics = {}
@@ -52,18 +51,14 @@ def retrieve_hybrid_chunks(
         dense_chunks = retrieve_relevant_chunks(
             query=dense_query or query,
             limit=candidate_limit,
-            reference_doc=reference_doc,
-            user_id=user_id,
-            document_ids=document_ids,
+            retrieval_filter=retrieval_filter,
         )
 
     with timed_stage(metrics, "bm25_retrieval_ms"):
         bm25_chunks = retrieve_bm25_chunks(
             query=query,
             limit=candidate_limit,
-            reference_doc=reference_doc,
-            user_id=user_id,
-            document_ids=document_ids,
+            retrieval_filter=retrieval_filter,
         )
 
     with timed_stage(metrics, "rrf_ms"):

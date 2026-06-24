@@ -6,6 +6,7 @@ from langchain_core.documents import Document
 
 from app.core.config import get_settings
 from app.services.embeddings.ollama_embedder import embed_document_texts
+from app.services.retrieval.retrieval_filter import RetrievalFilter
 
 settings = get_settings()
 COLLECTION_NAME = settings.chroma_collection_name
@@ -30,18 +31,17 @@ def get_chroma_collection():
     )
 
 
-def build_chroma_where_filter(
-    reference_doc: str | None = None,
-    user_id: str | None = None,
-    document_ids: list[str] | None = None,
-) -> dict | None:
+def build_chroma_where_filter(retrieval_filter: RetrievalFilter | None) -> dict | None:
+    if retrieval_filter is None:
+        return None
+
     conditions = []
-    if reference_doc:
-        conditions.append({"filename": reference_doc})
-    if user_id:
-        conditions.append({"user_id": user_id})
-    if document_ids:
-        conditions.append({"document_id": {"$in": document_ids}})
+    if retrieval_filter.reference_doc:
+        conditions.append({"filename": retrieval_filter.reference_doc})
+    if retrieval_filter.user_id:
+        conditions.append({"user_id": retrieval_filter.user_id})
+    if retrieval_filter.document_ids:
+        conditions.append({"document_id": {"$in": list(retrieval_filter.document_ids)}})
     if not conditions:
         return None
     if len(conditions) == 1:

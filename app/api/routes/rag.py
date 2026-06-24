@@ -11,6 +11,7 @@ from app.schemas.rag import RagQueryRequest
 from app.services.generation.ollama_generator import generate_answer
 from app.services.retrieval.hybrid_retriever import retrieve_hybrid_chunks
 from app.services.retrieval.query_rewriter import rewrite_query_hyde
+from app.services.retrieval.retrieval_filter import RetrievalFilter
 from app.utils.timing import timed_stage
 
 router = APIRouter(
@@ -36,8 +37,10 @@ async def query_rag(
             limit=request.limit,
             candidate_limit=20,
             metrics=metrics,
-            user_id=current_user.id,
-            document_ids=request.document_ids,
+            retrieval_filter=RetrievalFilter(
+                user_id=current_user.id,
+                document_ids=request.document_ids,
+            ),
         )
 
     async def response_generator():
