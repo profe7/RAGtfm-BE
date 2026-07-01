@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+
 from app.services.retrieval.bm25_retriever import retrieve_bm25_chunks
 from app.services.retrieval.chroma_retriever import retrieve_relevant_chunks
 from app.services.retrieval.cross_encoder_reranker import rerank_chunks
@@ -47,19 +49,29 @@ def retrieve_hybrid_chunks(
     if metrics is None:
         metrics = {}
 
-    with timed_stage(metrics, "dense_retrieval_ms"):
-        dense_chunks = retrieve_relevant_chunks(
-            query=dense_query or query,
-            limit=candidate_limit,
-            retrieval_filter=retrieval_filter,
-        )
+    def dense_leg() -> list[dict]:
+        with timed_stage(metrics, "dense_retrieval_ms"):
+            return retrieve_relevant_chunks(
+                query=dense_query or query,
+                limit=candidate_limit,
+                retrieval_filter=retrieval_filter,
+            )
 
-    with timed_stage(metrics, "bm25_retrieval_ms"):
-        bm25_chunks = retrieve_bm25_chunks(
-            query=query,
-            limit=candidate_limit,
-            retrieval_filter=retrieval_filter,
-        )
+    def bm25_leg() -> list[dict]:
+        with timed_stage(metrics, "bm25_retrieval_ms"):
+            return retrieve_bm25_chunks(
+                query=query,
+                limit=candidate_limit,
+                retrieval_filter=retrieval_filter,
+            )
+
+    # Dense and BM25 are independent; overlap them so this stage costs
+    # max(dense, bm25) instead of their sum (see PRIVATENOTES §10).
+    with timed_stage(metrics, "candidate_retrieval_ms"), ThreadPoolExecutor(max_workers=2) as pool:
+        dense_future = pool.submit(dense_leg)
+        bm25_future = pool.submit(bm25_leg)
+        dense_chunks = dense_future.result()
+        bm25_chunks = bm25_future.result()
 
     with timed_stage(metrics, "rrf_ms"):
         fused_candidates = reciprocal_rank_fusion(

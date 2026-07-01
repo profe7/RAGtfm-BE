@@ -3,6 +3,7 @@ from time import perf_counter
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import StreamingResponse
 
 from app.api.deps import get_current_user
@@ -27,11 +28,14 @@ async def query_rag(
     metrics = {}
     total_start = perf_counter()
 
+    # Offload the blocking, sync retrieval steps to a thread so they don't stall the
+    # event loop of this async handler (see PRIVATENOTES §10).
     with timed_stage(metrics, "query_rewrite_ms"):
-        retrieval_query = rewrite_query_hyde(request.query)
+        retrieval_query = await run_in_threadpool(rewrite_query_hyde, request.query)
 
     with timed_stage(metrics, "retrieval_ms"):
-        chunks = retrieve_hybrid_chunks(
+        chunks = await run_in_threadpool(
+            retrieve_hybrid_chunks,
             query=request.query,
             dense_query=retrieval_query,
             limit=request.limit,
