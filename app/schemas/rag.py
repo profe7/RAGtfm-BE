@@ -7,3 +7,7 @@ class RagQueryRequest(BaseModel):
     document_ids: list[str] | None = Field(
         default=None, description="Optional list of document IDs to restrict the search to"
     )
+    conversation_id: str | None = Field(
+        default=None,
+        description="Optional conversation to continue. Omit to start a new conversation.",
+    )

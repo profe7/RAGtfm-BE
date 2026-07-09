@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     vision_context_max_chars: int = 800
     enable_image_generation: bool = True
 
+    conversation_history_turns: int = 6
+
     chroma_host: str = "chroma"
     chroma_port: int = 8000
     chroma_collection_name: str = "rag_documents"

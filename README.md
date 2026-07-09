@@ -75,6 +75,7 @@ GPU : Nvidia Geforce RTX 4090 24GB
 - [x] Streaming grounded answers from the Ollama generation model with inline source citations
 - [x] Multimodal generation: the original image is attached for retrieved image chunks, so answers are grounded in the image rather than only its caption (toggle with `enable_image_generation`)
 - [x] Faithfulness-hardened system prompt that answers "I do not know" rather than substituting a related-but-different fact
+- [x] Multi-turn conversations: prior turns are persisted per user and replayed into each request (last-N, configurable via `CONVERSATION_HISTORY_TURNS`), with a history-aware query-contextualization step so follow-ups like "what about its limitations?" retrieve correctly
 
 ### Documents
 - [x] Document listing endpoint (per-user)
@@ -105,7 +106,7 @@ GPU : Nvidia Geforce RTX 4090 24GB
 | `POST` | `/documents/events/ticket` | Mint a short-lived, single-use ticket for the SSE stream |
 | `GET` | `/documents/events` | Stream live document status updates via SSE (authenticated with a ticket) |
 | `GET` | `/retrieve/chunks` | Retrieve relevant chunks for a query |
-| `POST` | `/rag/query` | Retrieve context and generate a grounded answer |
+| `POST` | `/rag/query` | Retrieve context and generate a grounded answer (multi-turn via optional `conversation_id`) |
 | `GET` | `/test/metrics` | Run the evaluation dataset and return metrics |
 | `GET` | `/health/live` | Check if the API is alive |
 | `GET` | `/health/ready` | Check if the API can serve traffic |
@@ -116,14 +117,18 @@ GPU : Nvidia Geforce RTX 4090 24GB
 {
   "query": "What is the methodology used?",
   "limit": 5,
-  "document_ids": ["uuid-1", "uuid-2"]
+  "document_ids": ["uuid-1", "uuid-2"],
+  "conversation_id": "uuid-conversation"
 }
 ```
 
 `document_ids` is optional. If omitted, all documents belonging to the current user are searched.
 
+`conversation_id` is optional. Omit it to start a new conversation — the response stream's first frame is `{"type": "conversation", "data": {"conversation_id": "..."}}`, whose id you echo back on the next request to continue the conversation. Passing another user's `conversation_id` returns `404`.
+
 ## Retrieval Pipeline
 
+0. If the request continues a conversation, rewrite the follow-up into a standalone query using the replayed history (skipped on the first turn)
 1. Embed the query with Ollama `nomic-embed-text`
 2. Retrieve dense candidates from ChromaDB (filtered by `user_id` and optionally `document_ids`)
 3. Retrieve lexical candidates with BM25 (same filters applied)

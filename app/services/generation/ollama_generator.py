@@ -78,7 +78,7 @@ async def collect_chunk_images(chunks: list[dict]) -> list[bytes]:
     return [image_bytes for image_bytes in loaded if image_bytes]
 
 
-async def generate_answer(query: str, chunks: list[dict]):
+async def generate_answer(query: str, chunks: list[dict], history: list[dict] | None = None):
     context = build_context(chunks)
     images = await collect_chunk_images(chunks)
 
@@ -90,15 +90,15 @@ async def generate_answer(query: str, chunks: list[dict]):
     if images:
         user_message["images"] = images
 
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        *(history or []),
+        user_message,
+    ]
+
     stream = await ollama_async_client.chat(
         model=GENERATION_MODEL,
-        messages=[
-            {
-                "role": "system",
-                "content": SYSTEM_PROMPT,
-            },
-            user_message,
-        ],
+        messages=messages,
         options={
             "temperature": 0,
         },
