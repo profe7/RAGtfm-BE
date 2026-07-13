@@ -10,6 +10,7 @@ from fastapi import APIRouter, Response, status
 from sqlalchemy import text
 
 from app.core.config import get_settings
+from app.core.warmup import models_warmed
 from app.db.session import SessionLocal
 from app.services.ollama_client import ollama_client
 
@@ -106,4 +107,5 @@ def ready(response: Response) -> dict[str, Any]:
     return {
         "status": "ok" if ready_status else "degraded",
         "checks": checks,
+        "models_warmed": models_warmed(),
     }

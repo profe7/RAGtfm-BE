@@ -1,3 +1,8 @@
+import os
+
+os.environ.setdefault("WARM_MODELS_ON_STARTUP", "false")
+os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine

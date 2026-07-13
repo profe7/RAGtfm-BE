@@ -87,6 +87,13 @@ GPU : Nvidia Geforce RTX 4090 24GB
 - [x] Per-user event channels backed by Redis pub/sub
 - [x] Ticket-based SSE authentication: since `EventSource` cannot send an `Authorization` header, the client trades its JWT for a short-lived, single-use ticket, so the long-lived token never appears in a URL, access log, or browser history
 
+### Observability & Operations
+- [x] Structured JSON logging with a per-request `X-Request-ID` bound to every log line (stdlib, Ollama, and ingestion logs are unified into the same JSON stream)
+- [x] Prometheus metrics at `/metrics`: HTTP request counts and latency histograms plus per-stage RAG pipeline latency (`rag_stage_duration_seconds` covering query rewrite, dense/BM25 retrieval, RRF, rerank, generation, and total)
+- [x] Model warmup on startup (cross-encoder reranker + embedder) via a FastAPI lifespan, so the first user request does not pay the cold-start cost
+- [x] Rate limiting with SlowAPI (Redis-backed in production): brute-force protection on `/auth/login` and `/auth/register`, and a per-user quota on the expensive `/rag/query` endpoint
+- [x] Fully pinned dependency lockfile (`requirements.txt`) generated from `requirements.in` for reproducible builds
+
 ### Evaluation
 - [x] Evaluation endpoint for test metrics
 - [x] Test dataset support for PDF question-answer evaluation
@@ -110,6 +117,7 @@ GPU : Nvidia Geforce RTX 4090 24GB
 | `GET` | `/test/metrics` | Run the evaluation dataset and return metrics |
 | `GET` | `/health/live` | Check if the API is alive |
 | `GET` | `/health/ready` | Check if the API can serve traffic |
+| `GET` | `/metrics` | Prometheus metrics (served at the app root, outside `/api/v1`) |
 
 ## RAG Query Request
 
@@ -161,6 +169,14 @@ Required Ollama models (pull into the Ollama container after first start):
 ```bash
 docker compose exec ollama ollama pull nomic-embed-text
 docker compose exec ollama ollama pull qwen3.5:latest
+```
+
+## Dependencies
+
+Direct dependencies are declared in `requirements.in`. The committed `requirements.txt` is a fully pinned lockfile for reproducible builds; regenerate it after editing `requirements.in` with:
+
+```bash
+uv pip compile requirements.in -o requirements.txt
 ```
 
 ## Run With Docker Compose

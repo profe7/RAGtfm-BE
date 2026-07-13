@@ -8,6 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "RAGtfm API"
     app_version: str = "0.1.0"
+    log_level: str = "INFO"
 
     # No secret is committed to source. Set SECRET_KEY in the (gitignored)
     # .env.docker for a stable signing key; otherwise a random one is generated
@@ -43,6 +44,14 @@ class Settings(BaseSettings):
     s3_expected_bucket_owner: str | None = None
 
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+
+    warm_models_on_startup: bool = True
+
+    rate_limit_enabled: bool = True
+    rate_limit_storage_uri: str = "memory://"
+    login_rate_limit: str = "10/minute"
+    register_rate_limit: str = "20/hour"
+    rag_query_rate_limit: str = "30/minute"
 
     model_config = SettingsConfigDict(
         env_file_encoding="utf-8",

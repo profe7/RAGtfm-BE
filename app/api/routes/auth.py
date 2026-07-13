@@ -1,11 +1,13 @@
 from datetime import datetime
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.api.deps import oauth2_scheme
+from app.core.config import get_settings
+from app.core.rate_limit import limiter
 from app.core.security import (
     create_access_token,
     decode_access_token,
@@ -17,10 +19,12 @@ from app.db.session import get_db
 from app.schemas.auth import LogoutResponse, Token, UserCreate, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+settings = get_settings()
 
 
 @router.post("/register", response_model=UserResponse)
-def register(user_in: UserCreate, db: Session = Depends(get_db)):
+@limiter.limit(settings.register_rate_limit)
+def register(request: Request, user_in: UserCreate, db: Session = Depends(get_db)):
     user = db.query(UserRecord).filter(UserRecord.email == user_in.email).first()
     if user:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -33,7 +37,12 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+@limiter.limit(settings.login_rate_limit)
+def login(
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+):
     user = db.query(UserRecord).filter(UserRecord.email == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
