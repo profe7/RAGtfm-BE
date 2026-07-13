@@ -20,24 +20,25 @@ Do not substitute a related but different fact. If the context only covers a
 related-but-different concept, treat the answer as missing.
 If the answer is not explicitly in the context, respond exactly: I do not know based on the provided context.
 Use one short paragraph unless the user asks for steps or a list.
-Cite sources inline using [source: chunk_id].
+Cite each fact inline using the bracketed source number shown in the context, for example [source: 1] or [source: 2]. Only cite numbers that appear in the context.
 Preserve exact values and units provided in the context.
 Do not repeat the same source citation unnecessarily.
 """
 
 
-def format_chunk_for_context(chunk: dict) -> str:
+def format_chunk_for_context(chunk: dict, ordinal: int) -> str:
     metadata = chunk["metadata"]
 
-    source_label = chunk["chunk_id"]
     filename = metadata.get("filename")
     chunk_type = metadata.get("chunk_type")
 
-    return f"[source: {source_label}]\nfilename: {filename}\ntype: {chunk_type}\n\n{chunk['text']}"
+    return f"[source: {ordinal}]\nfilename: {filename}\ntype: {chunk_type}\n\n{chunk['text']}"
 
 
 def build_context(chunks: list[dict]) -> str:
-    formatted_chunks = [format_chunk_for_context(chunk) for chunk in chunks]
+    formatted_chunks = [
+        format_chunk_for_context(chunk, ordinal) for ordinal, chunk in enumerate(chunks, start=1)
+    ]
 
     return "\n\n---\n\n".join(formatted_chunks)
 
