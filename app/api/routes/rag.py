@@ -23,6 +23,7 @@ from app.services.generation.ollama_generator import generate_answer
 from app.services.retrieval.hybrid_retriever import retrieve_hybrid_chunks
 from app.services.retrieval.query_rewriter import contextualize_query, rewrite_query_hyde
 from app.services.retrieval.retrieval_filter import RetrievalFilter
+from app.services.retrieval.source_presenter import present_retrieved_chunks
 from app.utils.timing import timed_stage
 
 router = APIRouter(
@@ -33,10 +34,24 @@ router = APIRouter(
 settings = get_settings()
 
 
-def _persist_turn(db: Session, conversation_id: str, user_query: str, answer: str) -> None:
-    append_message(db, conversation_id, "user", user_query)
+def _persist_answer(
+    db: Session,
+    conversation_id: str,
+    answer: str,
+    sources: list[dict],
+    metrics: dict,
+    completed: bool,
+) -> None:
     if answer:
-        append_message(db, conversation_id, "assistant", answer)
+        append_message(
+            db,
+            conversation_id,
+            "assistant",
+            answer,
+            sources=sources,
+            metrics=metrics,
+            message_status="complete" if completed else "interrupted",
+        )
 
 
 @router.post("/query")
@@ -57,9 +72,8 @@ async def query_rag(
     history = await run_in_threadpool(
         load_recent_messages, db, conversation_id, settings.conversation_history_turns
     )
+    await run_in_threadpool(append_message, db, conversation_id, "user", payload.query)
 
-    # Offload the blocking, sync retrieval steps to a thread so they don't stall the
-    # event loop of this async handler (see PRIVATENOTES §10).
     with timed_stage(metrics, "query_rewrite_ms"):
         standalone_query = await run_in_threadpool(contextualize_query, history, payload.query)
         retrieval_query = await run_in_threadpool(rewrite_query_hyde, standalone_query)
@@ -77,6 +91,7 @@ async def query_rag(
                 document_ids=payload.document_ids,
             ),
         )
+    public_chunks = present_retrieved_chunks(chunks)
 
     async def response_generator():
         yield (
@@ -86,9 +101,10 @@ async def query_rag(
             )
             + "\n"
         )
-        yield json.dumps({"type": "sources", "data": chunks}, separators=(",", ":")) + "\n"
+        yield json.dumps({"type": "sources", "data": public_chunks}, separators=(",", ":")) + "\n"
 
         answer_parts: list[str] = []
+        completed = False
         try:
             with timed_stage(metrics, "generation_ms"):
                 async for token in generate_answer(
@@ -99,12 +115,19 @@ async def query_rag(
                         json.dumps({"type": "token", "data": token}, separators=(",", ":")) + "\n"
                     )
 
+            completed = True
             metrics["total_ms"] = round((perf_counter() - total_start) * 1000, 2)
             yield json.dumps({"type": "metrics", "data": metrics}, separators=(",", ":")) + "\n"
         finally:
             observe_rag_stages(metrics)
             await run_in_threadpool(
-                _persist_turn, db, conversation_id, payload.query, "".join(answer_parts)
+                _persist_answer,
+                db,
+                conversation_id,
+                "".join(answer_parts),
+                public_chunks,
+                dict(metrics),
+                completed,
             )
 
     return StreamingResponse(response_generator(), media_type="application/x-ndjson")

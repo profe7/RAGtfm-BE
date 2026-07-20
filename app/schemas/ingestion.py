@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class StoredDocumentResponse(BaseModel):
@@ -7,9 +7,6 @@ class StoredDocumentResponse(BaseModel):
     content_type: str
     size_bytes: int
     sha256: str
-    storage_backend: str
-    storage_uri: str
-    storage_path: str
 
 
 class IngestPdfResponse(BaseModel):
@@ -19,4 +16,4 @@ class IngestPdfResponse(BaseModel):
     status: str
     chunk_count: int
     stored_chunk_count: int
-    stored_chunk_ids: list[str] = []
+    stored_chunk_ids: list[str] = Field(default_factory=list)

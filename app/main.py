@@ -8,6 +8,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.api.routes import auth
+from app.api.routes.conversations import router as conversations_router
 from app.api.routes.documents import router as documents_router
 from app.api.routes.events import router as events_router
 from app.api.routes.health import router as health_router
@@ -55,6 +56,7 @@ api_router.include_router(events_router)
 api_router.include_router(documents_router)
 api_router.include_router(health_router)
 api_router.include_router(auth.router)
+api_router.include_router(conversations_router)
 
 app.include_router(api_router)
 app.mount("/metrics", make_asgi_app())

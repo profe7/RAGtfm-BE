@@ -1,3 +1,5 @@
+from importlib import import_module
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
@@ -22,10 +24,7 @@ class Base(DeclarativeBase):
 
 
 def init_db() -> None:
-    # Imported for its side effect: defining the model classes registers their
-    # tables on Base.metadata so create_all() below knows what to create.
-    from app.db import models  # noqa: F401
-
+    import_module("app.db.models")
     Base.metadata.create_all(bind=engine)
 
 

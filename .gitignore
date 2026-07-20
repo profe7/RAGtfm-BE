@@ -1,27 +1,20 @@
-# Python
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Virtual environments
 .venv/
 venv/
 env/
 
-# Environment config
 .env
 .env.docker
 
-# Local vector store / generated data
 chroma_db/
 
-# Local document storage, when added later
 storage/
 
-# OS/editor
 .DS_Store
 .vscode/
 .idea/
 
-# Private learning notes
 PRIVATENOTES.md

@@ -99,7 +99,8 @@ def live() -> dict[str, str]:
 @router.get("/ready")
 def ready(response: Response) -> dict[str, Any]:
     checks = {name: _run_check(probe) for name, probe in HEALTH_PROBES.items()}
-    ready_status = all(check["ok"] for check in checks.values())
+    model_status = not settings.warm_models_on_startup or models_warmed()
+    ready_status = all(check["ok"] for check in checks.values()) and model_status
 
     if not ready_status:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE

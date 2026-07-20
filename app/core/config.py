@@ -10,9 +10,6 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     log_level: str = "INFO"
 
-    # No secret is committed to source. Set SECRET_KEY in the (gitignored)
-    # .env.docker for a stable signing key; otherwise a random one is generated
-    # per process (fine for tests/dev — tokens just don't survive a restart).
     secret_key: str = Field(default_factory=lambda: token_urlsafe(32))
     access_token_expire_minutes: int = 60 * 24 * 7
     sse_ticket_ttl_seconds: int = 30
@@ -52,6 +49,7 @@ class Settings(BaseSettings):
     login_rate_limit: str = "10/minute"
     register_rate_limit: str = "20/hour"
     rag_query_rate_limit: str = "30/minute"
+    evaluation_rate_limit: str = "2/hour"
 
     model_config = SettingsConfigDict(
         env_file_encoding="utf-8",

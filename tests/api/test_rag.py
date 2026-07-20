@@ -80,6 +80,8 @@ def test_first_turn_emits_conversation_id_and_persists(auth_client, db_session, 
         ("user", "what is X?"),
         ("assistant", "hello world"),
     ]
+    assert messages[1].sources[0]["chunk_id"] == "c1"
+    assert messages[1].status == "complete"
 
 
 def test_second_turn_replays_history(auth_client, db_session, stub_pipeline):

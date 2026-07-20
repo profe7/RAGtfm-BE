@@ -1,7 +1,10 @@
 import math
 from typing import Annotated
+from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query
+import structlog
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -19,7 +22,10 @@ from app.services.documents.document_catalog import (
     get_document_record,
     list_document_records,
 )
-from app.services.documents.document_storage import delete_document_from_s3_storage
+from app.services.documents.document_storage import (
+    delete_document_from_s3_storage,
+    download_document_from_s3_storage,
+)
 from app.services.retrieval.bm25_retriever import clear_bm25_cache
 from app.services.vectorstores.chroma_store import delete_document_chunks
 
@@ -29,6 +35,7 @@ router = APIRouter(
 )
 
 settings = get_settings()
+logger = structlog.get_logger(__name__)
 
 
 @router.get("", response_model=DocumentListResponse)
@@ -74,6 +81,58 @@ def get_document(
         )
 
     return document
+
+
+@router.get(
+    "/{document_id}/content",
+    response_class=Response,
+    responses={
+        200: {"content": {"application/pdf": {}}},
+        404: {"description": "Document not found"},
+        503: {"description": "Document content is temporarily unavailable"},
+    },
+)
+async def get_document_content(
+    document_id: Annotated[str, Path(min_length=1)],
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[UserRecord, Depends(get_current_user)],
+):
+    document = get_document_record(db, document_id, current_user.id)
+    if document is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    try:
+        content = await run_in_threadpool(
+            download_document_from_s3_storage,
+            storage_path=document.storage_path,
+            endpoint_url=settings.s3_endpoint_url,
+            access_key_id=settings.s3_access_key_id,
+            secret_access_key=settings.s3_secret_access_key,
+            bucket_name=settings.s3_bucket_name,
+            region=settings.s3_region,
+            s3_expected_bucket_owner=settings.s3_expected_bucket_owner,
+        )
+    except Exception:
+        logger.exception(
+            "document_content_download_failed",
+            document_id=document_id,
+            user_id=current_user.id,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="Document content is temporarily unavailable",
+        ) from None
+
+    encoded_filename = quote(document.original_filename, safe="")
+    return Response(
+        content=content,
+        media_type="application/pdf",
+        headers={
+            "Cache-Control": "private, no-store",
+            "Content-Disposition": f"inline; filename*=UTF-8''{encoded_filename}",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 
 @router.delete(
@@ -122,6 +181,7 @@ def delete_document(
     delete_document_record(
         db=db,
         document_id=document_id,
+        user_id=current_user.id,
     )
 
     clear_bm25_cache()

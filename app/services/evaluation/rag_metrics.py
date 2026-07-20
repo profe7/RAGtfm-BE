@@ -3,6 +3,7 @@ import re
 from app.services.generation.ollama_generator import generate_answer
 from app.services.retrieval.hybrid_retriever import retrieve_hybrid_chunks
 from app.services.retrieval.retrieval_filter import RetrievalFilter
+from app.services.retrieval.source_presenter import present_retrieved_chunks
 
 
 def normalize_text(text: str) -> str:
@@ -94,7 +95,7 @@ def average(values: list[float]) -> float:
     return sum(values) / len(values)
 
 
-async def evaluate_dataset(dataset: list[dict], k: int = 5) -> dict:
+async def evaluate_dataset(dataset: list[dict], k: int = 5, user_id: str | None = None) -> dict:
     results = []
 
     for item in dataset:
@@ -102,7 +103,10 @@ async def evaluate_dataset(dataset: list[dict], k: int = 5) -> dict:
             query=item["question"],
             limit=k,
             candidate_limit=10,
-            retrieval_filter=RetrievalFilter(reference_doc=item.get("reference_doc")),
+            retrieval_filter=RetrievalFilter(
+                user_id=user_id,
+                reference_doc=item.get("reference_doc"),
+            ),
         )
 
         answer_parts = []
@@ -133,21 +137,7 @@ async def evaluate_dataset(dataset: list[dict], k: int = 5) -> dict:
                     "faithfulness": faithfulness,
                     "relevance": relevance,
                 },
-                "retrieved_chunks": [
-                    {
-                        "chunk_id": chunk["chunk_id"],
-                        "text": chunk["text"],
-                        "metadata": chunk["metadata"],
-                        "distance": chunk.get("distance"),
-                        "rrf_score": chunk.get("rrf_score"),
-                        "retrieval_sources": chunk.get("retrieval_sources"),
-                        "dense_rank": chunk.get("dense_rank"),
-                        "bm25_rank": chunk.get("bm25_rank"),
-                        "rerank_score": chunk.get("rerank_score"),
-                        "rerank_rank": chunk.get("rerank_rank"),
-                    }
-                    for chunk in chunks
-                ],
+                "retrieved_chunks": present_retrieved_chunks(chunks),
             }
         )
 

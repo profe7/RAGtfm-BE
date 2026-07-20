@@ -11,9 +11,6 @@ class DocumentResponse(BaseModel):
     content_type: str
     size_bytes: int
     sha256: str
-    storage_backend: str
-    storage_uri: str
-    storage_path: str
     status: str
     chunk_count: int
     stored_chunk_count: int

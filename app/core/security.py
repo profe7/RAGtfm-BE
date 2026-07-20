@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import bcrypt
@@ -23,7 +23,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def create_access_token(subject: str) -> str:
-    expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
+    expire = datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes)
     to_encode = {"exp": expire, "sub": str(subject), "jti": str(uuid4())}
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm="HS256")
     return encoded_jwt

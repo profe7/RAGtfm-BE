@@ -1,10 +1,3 @@
-"""conversations and messages
-
-Revision ID: 0002_conversations
-Revises: 0001_initial_schema
-Create Date: 2026-07-09
-"""
-
 from collections.abc import Sequence
 
 import sqlalchemy as sa

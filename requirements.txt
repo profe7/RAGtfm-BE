@@ -1,8 +1,3 @@
-# Fully pinned lockfile for reproducible builds — do not edit by hand.
-# Declare direct dependencies in requirements.in, then recompile, e.g.:
-#   uv pip compile requirements.in -o requirements.txt
-# This snapshot was pinned from the known-good build image.
-
 accelerate==1.14.0
 aiofiles==25.1.0
 aiohappyeyeballs==2.6.2

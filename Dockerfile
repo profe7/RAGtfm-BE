@@ -29,10 +29,11 @@ COPY --chown=app:app alembic ./alembic
 
 ENV HOME=/home/app
 ENV HF_HOME=/home/app/.cache/huggingface
-RUN chown -R app:app /app /home/app
+RUN mkdir -p /home/app/.cache/huggingface \
+    && chown -R app:app /app /home/app
 
 USER app
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]

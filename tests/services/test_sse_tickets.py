@@ -6,8 +6,6 @@ from app.services.events import sse_tickets
 
 
 class FakeAsyncRedis:
-    """Minimal in-memory stand-in for redis.asyncio supporting set/getdel/aclose."""
-
     def __init__(self, store: dict):
         self._store = store
 

@@ -73,14 +73,17 @@ GPU : Nvidia Geforce RTX 4090 24GB
 
 ### Generation
 - [x] Streaming grounded answers from the Ollama generation model with inline source citations
+- [x] Verifiable citations with page-level provenance and bounding-box coordinates for opening the original PDF evidence
 - [x] Multimodal generation: the original image is attached for retrieved image chunks, so answers are grounded in the image rather than only its caption (toggle with `enable_image_generation`)
 - [x] Faithfulness-hardened system prompt that answers "I do not know" rather than substituting a related-but-different fact
 - [x] Multi-turn conversations: prior turns are persisted per user and replayed into each request (last-N, configurable via `CONVERSATION_HISTORY_TURNS`), with a history-aware query-contextualization step so follow-ups like "what about its limitations?" retrieve correctly
+- [x] Conversation lifecycle APIs: list, reopen, rename, and delete conversations; saved assistant messages retain their source snapshots, metrics, and completion status
 
 ### Documents
 - [x] Document listing endpoint (per-user)
 - [x] Document detail endpoint
 - [x] Document deletion across PostgreSQL, ChromaDB, and object storage
+- [x] Authenticated inline PDF content endpoint for the evidence viewer (tenant ownership enforced, private/no-store caching)
 
 ### Real-time Events
 - [x] Server-Sent Events (SSE) stream for live document ingestion status (`PENDING` → `READY` / `FAILED`)
@@ -109,12 +112,17 @@ GPU : Nvidia Geforce RTX 4090 24GB
 | `POST` | `/ingest/pdf` | Upload and process a PDF (async) |
 | `GET` | `/documents` | List all documents for the current user |
 | `GET` | `/documents/{document_id}` | Get metadata for a specific document |
+| `GET` | `/documents/{document_id}/content` | Stream an owned original PDF for citation verification |
 | `DELETE` | `/documents/{document_id}` | Delete a document and all associated resources |
 | `POST` | `/documents/events/ticket` | Mint a short-lived, single-use ticket for the SSE stream |
 | `GET` | `/documents/events` | Stream live document status updates via SSE (authenticated with a ticket) |
 | `GET` | `/retrieve/chunks` | Retrieve relevant chunks for a query |
 | `POST` | `/rag/query` | Retrieve context and generate a grounded answer (multi-turn via optional `conversation_id`) |
-| `GET` | `/test/metrics` | Run the evaluation dataset and return metrics |
+| `GET` | `/conversations` | List the current user's saved conversations |
+| `GET` | `/conversations/{conversation_id}` | Reopen a conversation with saved sources and metrics |
+| `PATCH` | `/conversations/{conversation_id}` | Rename a conversation |
+| `DELETE` | `/conversations/{conversation_id}` | Delete a conversation and its messages |
+| `GET` | `/test/metrics` | Run the user-scoped evaluation dataset (authenticated and rate-limited) |
 | `GET` | `/health/live` | Check if the API is alive |
 | `GET` | `/health/ready` | Check if the API can serve traffic |
 | `GET` | `/metrics` | Prometheus metrics (served at the app root, outside `/api/v1`) |
@@ -133,6 +141,8 @@ GPU : Nvidia Geforce RTX 4090 24GB
 `document_ids` is optional. If omitted, all documents belonging to the current user are searched.
 
 `conversation_id` is optional. Omit it to start a new conversation — the response stream's first frame is `{"type": "conversation", "data": {"conversation_id": "..."}}`, whose id you echo back on the next request to continue the conversation. Passing another user's `conversation_id` returns `404`.
+
+The `sources` stream frame contains a stable public citation object for every chunk: document ID, filename, chunk type, cited page numbers, and source locations. Internal vector-store metadata and tenant identifiers are not exposed.
 
 ## Retrieval Pipeline
 

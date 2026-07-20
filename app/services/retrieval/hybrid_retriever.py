@@ -65,8 +65,6 @@ def retrieve_hybrid_chunks(
                 retrieval_filter=retrieval_filter,
             )
 
-    # Dense and BM25 are independent; overlap them so this stage costs
-    # max(dense, bm25) instead of their sum (see PRIVATENOTES §10).
     with timed_stage(metrics, "candidate_retrieval_ms"), ThreadPoolExecutor(max_workers=2) as pool:
         dense_future = pool.submit(dense_leg)
         bm25_future = pool.submit(bm25_leg)

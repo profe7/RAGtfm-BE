@@ -10,8 +10,8 @@ def chunk(chunk_id: str) -> dict:
 
 
 def test_chunk_in_both_lists_sums_contributions_and_records_both_sources():
-    dense = [chunk("a"), chunk("b")]  # b at rank 2
-    bm25 = [chunk("b"), chunk("c")]  # b at rank 1
+    dense = [chunk("a"), chunk("b")]
+    bm25 = [chunk("b"), chunk("c")]
 
     fused = reciprocal_rank_fusion(dense, bm25, limit=5, rrf_k=60)
     by_id = {c["chunk_id"]: c for c in fused}

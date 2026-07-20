@@ -42,10 +42,15 @@ def configure_logging(log_level: str = "INFO") -> None:
     root_logger.addHandler(handler)
     root_logger.setLevel(log_level)
 
-    for uvicorn_logger in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+    for uvicorn_logger in ("uvicorn", "uvicorn.error"):
         logger = logging.getLogger(uvicorn_logger)
         logger.handlers.clear()
         logger.propagate = True
+
+    access_logger = logging.getLogger("uvicorn.access")
+    access_logger.handlers.clear()
+    access_logger.propagate = False
+    access_logger.disabled = True
 
 
 def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:
