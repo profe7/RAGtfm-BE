@@ -2,8 +2,8 @@ from types import SimpleNamespace
 
 from langchain_core.documents import Document
 
-from app.services.ingestion import embedding_preparer
-from app.services.ingestion.pdf_chunker import build_image_context
+from app.services.ingestion import embedding_preparer, pdf_chunker
+from app.services.ingestion.pdf_chunker import build_image_context, chunk_pdf_elements_by_title
 
 
 class FakeElement:
@@ -58,6 +58,31 @@ def test_build_image_context_truncates_to_max_chars():
     context = build_image_context(elements, image, window=2, max_chars=100)
 
     assert len(context) == 100
+
+
+def test_build_image_context_ignores_elements_with_null_text():
+    elements = [
+        FakeElement("NarrativeText", None),
+        FakeElement("Image", None),
+    ]
+
+    assert build_image_context(elements, elements[1]) == ""
+
+
+def test_chunker_uses_placeholder_for_image_with_null_text(monkeypatch):
+    image = FakeElement("Image", None)
+    image.id = "image-1"
+    image.metadata.coordinates = None
+    image.metadata.source_order = 1
+    image.metadata.image_base64 = None
+    image.metadata.image_mime_type = None
+    monkeypatch.setattr(pdf_chunker, "chunk_by_title", lambda *args, **kwargs: [])
+
+    documents = chunk_pdf_elements_by_title([image], "null-text.pdf")
+
+    assert len(documents) == 1
+    assert documents[0].page_content == "[Image]"
+    assert documents[0].metadata["source_locations"][0]["element_id"] == "image-1"
 
 
 def test_prepare_image_embedding_combines_caption_and_ocr(monkeypatch):

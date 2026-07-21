@@ -14,6 +14,20 @@ from app.services.vision.image_store import persist_image_chunks
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+PERMANENT_PROCESSING_ERRORS = (TypeError, ValueError)
+
+
+def mark_document_failed(db, document_id: str, user_id: str) -> None:
+    update_document_status(
+        db=db,
+        document_id=document_id,
+        status=DocumentStatus.FAILED,
+    )
+    publish_document_event(
+        user_id=user_id,
+        document_id=document_id,
+        status=DocumentStatus.FAILED,
+    )
 
 
 @celery_app.task(bind=True, max_retries=3)
@@ -83,19 +97,13 @@ def process_document_task(self, document_id: str, storage_path: str, filename: s
 
     except Exception as e:
         logger.exception(f"Failed to process document {document_id}: {e!s}")
+        if isinstance(e, PERMANENT_PROCESSING_ERRORS):
+            mark_document_failed(db, document_id, user_id)
+            raise
         try:
             self.retry(countdown=10 * (self.request.retries + 1))
         except self.MaxRetriesExceededError:
-            update_document_status(
-                db=db,
-                document_id=document_id,
-                status=DocumentStatus.FAILED,
-            )
-            publish_document_event(
-                user_id=user_id,
-                document_id=document_id,
-                status=DocumentStatus.FAILED,
-            )
+            mark_document_failed(db, document_id, user_id)
             raise
     finally:
         db.close()

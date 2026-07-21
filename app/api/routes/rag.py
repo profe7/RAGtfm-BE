@@ -21,7 +21,10 @@ from app.services.conversations.conversation_store import (
 )
 from app.services.generation.ollama_generator import generate_answer
 from app.services.retrieval.hybrid_retriever import retrieve_hybrid_chunks
-from app.services.retrieval.query_rewriter import contextualize_query, rewrite_query_hyde
+from app.services.retrieval.query_rewriter import (
+    contextualize_query,
+    expand_query_for_dense_retrieval,
+)
 from app.services.retrieval.retrieval_filter import RetrievalFilter
 from app.services.retrieval.source_presenter import present_retrieved_chunks
 from app.utils.timing import timed_stage
@@ -76,7 +79,9 @@ async def query_rag(
 
     with timed_stage(metrics, "query_rewrite_ms"):
         standalone_query = await run_in_threadpool(contextualize_query, history, payload.query)
-        retrieval_query = await run_in_threadpool(rewrite_query_hyde, standalone_query)
+        retrieval_query = await run_in_threadpool(
+            expand_query_for_dense_retrieval, standalone_query
+        )
 
     with timed_stage(metrics, "retrieval_ms"):
         chunks = await run_in_threadpool(

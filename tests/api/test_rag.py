@@ -35,7 +35,7 @@ def stub_pipeline(monkeypatch):
         calls["contextualize"].append({"history": history, "query": query})
         return query
 
-    def fake_hyde(query):
+    def fake_dense_expansion(query):
         return query
 
     def fake_retrieve(*args, **kwargs):
@@ -47,7 +47,11 @@ def stub_pipeline(monkeypatch):
         yield "world"
 
     monkeypatch.setattr(rag_route, "contextualize_query", fake_contextualize)
-    monkeypatch.setattr(rag_route, "rewrite_query_hyde", fake_hyde)
+    monkeypatch.setattr(
+        rag_route,
+        "expand_query_for_dense_retrieval",
+        fake_dense_expansion,
+    )
     monkeypatch.setattr(rag_route, "retrieve_hybrid_chunks", fake_retrieve)
     monkeypatch.setattr(rag_route, "generate_answer", fake_generate)
     return calls

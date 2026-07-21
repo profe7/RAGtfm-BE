@@ -28,6 +28,11 @@ SEPARATE_ELEMENT_TYPES = {
 }
 
 
+def element_text(element) -> str:
+    value = getattr(element, "text", None)
+    return value.strip() if isinstance(value, str) else ""
+
+
 def build_image_context(
     elements,
     image_element,
@@ -44,7 +49,7 @@ def build_image_context(
     def context_text(element) -> str | None:
         if element.category not in CONTEXT_ELEMENT_TYPES:
             return None
-        text = str(element).strip()
+        text = element_text(element)
         return text or None
 
     before: list[str] = []
@@ -81,7 +86,7 @@ def chunk_pdf_elements_by_title(elements, filename: str) -> list[Document]:
     for element in elements:
         if element.category in SEPARATE_ELEMENT_TYPES:
             separate_elements.append(element)
-        elif element.category in TEXT_ELEMENT_TYPES:
+        elif element.category in TEXT_ELEMENT_TYPES and element_text(element):
             text_elements.append(element)
 
     chunked_text_elements = chunk_by_title(
@@ -95,7 +100,7 @@ def chunk_pdf_elements_by_title(elements, filename: str) -> list[Document]:
     documents = []
 
     for chunk_index, chunk in enumerate(chunked_text_elements, start=1):
-        text = str(chunk).strip()
+        text = element_text(chunk)
 
         if not text:
             continue
@@ -118,7 +123,7 @@ def chunk_pdf_elements_by_title(elements, filename: str) -> list[Document]:
 
     for element in separate_elements:
         metadata = element.metadata
-        text = str(element).strip()
+        text = element_text(element)
         source_location = source_location_from_element(element)
 
         if element.category == "Table":
