@@ -77,15 +77,16 @@ def test_conversations_are_tenant_scoped(auth_client, db_session):
     conversation_id = get_or_create_conversation(db_session, other.id, None)
 
     assert auth_client.get(f"/api/v1/conversations/{conversation_id}").status_code == 404
-    assert auth_client.patch(
-        f"/api/v1/conversations/{conversation_id}", json={"title": "Nope"}
-    ).status_code == 404
+    assert (
+        auth_client.patch(
+            f"/api/v1/conversations/{conversation_id}", json={"title": "Nope"}
+        ).status_code
+        == 404
+    )
     assert auth_client.delete(f"/api/v1/conversations/{conversation_id}").status_code == 404
 
 
 def test_rejects_blank_title(auth_client, db_session, mock_user):
     conversation_id = get_or_create_conversation(db_session, mock_user.id, None)
-    response = auth_client.patch(
-        f"/api/v1/conversations/{conversation_id}", json={"title": "   "}
-    )
+    response = auth_client.patch(f"/api/v1/conversations/{conversation_id}", json={"title": "   "})
     assert response.status_code == 422
