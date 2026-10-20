@@ -2,9 +2,12 @@ import asyncio
 import json
 import logging
 
+from langchain_core.documents import Document
+
 from app.core.config import get_settings
 from app.services.documents.document_storage import download_document_from_s3_storage
 from app.services.ollama_client import ollama_async_client
+from app.services.retrieval.csv_retriever import csv_row_values
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -43,6 +46,13 @@ Citations:
 - Never invent, alter, or cite a source_id that is absent from the payload.
 - Put citations immediately after the claim they support. One citation may support multiple adjacent claims from the same source.
 
+CSV and table evidence:
+- Treat each table source as a record: column labels identify what each value means. When csv_row is present, it preserves the exact column/value mapping.
+- Match ALL requested constraints within the same row, including event and year. Never join unrelated rows just because they mention the same person or event.
+- A finishing Position of 1 means first place or the winner; a Starting Grid of 1, car No of 1, or source row number of 1 does not. Preserve this distinction.
+- Natural-language event names may correspond to stored labels, such as Australian Grand Prix and Track: Australia. Use the matching row's values and cite that source.
+- Retrieved rows may be only a subset of the file. Do not claim a whole-table total, count, maximum, minimum, or absence from a subset.
+
 Response quality:
 - Lead with the direct answer. Be concise but complete and use the format requested by the user.
 - Preserve exact names, dates, values, qualifications, and units from the sources.
@@ -53,12 +63,16 @@ Response quality:
 
 def format_chunk_for_context(chunk: dict, ordinal: int) -> dict:
     metadata = chunk.get("metadata") or {}
-    return {
+    source = {
         "source_id": ordinal,
         "filename": metadata.get("filename"),
         "content_type": metadata.get("chunk_type"),
         "content": chunk.get("text") or "",
     }
+    row = csv_row_values(Document(page_content=source["content"], metadata=metadata))
+    if row:
+        source["csv_row"] = row
+    return source
 
 
 def build_context(chunks: list[dict]) -> list[dict]:

@@ -87,7 +87,7 @@ def get_document(
     "/{document_id}/content",
     response_class=Response,
     responses={
-        200: {"content": {"application/pdf": {}}},
+        200: {"content": {"application/pdf": {}, "text/csv": {}}},
         404: {"description": "Document not found"},
         503: {"description": "Document content is temporarily unavailable"},
     },
@@ -126,7 +126,7 @@ async def get_document_content(
     encoded_filename = quote(document.original_filename, safe="")
     return Response(
         content=content,
-        media_type="application/pdf",
+        media_type=document.content_type,
         headers={
             "Cache-Control": "private, no-store",
             "Content-Disposition": f"inline; filename*=UTF-8''{encoded_filename}",

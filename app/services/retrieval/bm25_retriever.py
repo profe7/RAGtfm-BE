@@ -3,6 +3,7 @@ from functools import lru_cache
 from langchain_community.retrievers import BM25Retriever
 from langchain_core.documents import Document
 
+from app.services.retrieval.csv_retriever import retrieve_csv_row_chunks
 from app.services.retrieval.retrieval_filter import RetrievalFilter
 from app.services.vectorstores.chroma_store import build_chroma_where_filter, get_chroma_collection
 
@@ -60,10 +61,15 @@ def retrieve_bm25_chunks(
     if retriever is None:
         return []
 
-    retriever.k = limit
-    retrieved_documents = retriever.invoke(query)
+    csv_chunks = retrieve_csv_row_chunks(query, retriever.docs, limit)
+    csv_ids = {chunk["chunk_id"] for chunk in csv_chunks}
+    # Do not mutate the cached retriever's k: concurrent requests can have different limits.
+    retrieved_documents = retriever.vectorizer.get_top_n(
+        retriever.preprocess_func(query), retriever.docs, n=limit
+    )
 
-    return [
+    return csv_chunks + [
         document_to_chunk(document, rank)
         for rank, document in enumerate(retrieved_documents, start=1)
+        if document.metadata["chunk_id"] not in csv_ids
     ]

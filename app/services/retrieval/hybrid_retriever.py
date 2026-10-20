@@ -17,6 +17,10 @@ def _accumulate_rrf(
         chunk_id = chunk["chunk_id"]
         if chunk_id not in fused:
             fused[chunk_id] = {**chunk, "retrieval_sources": [], "rrf_score": 0.0}
+        if chunk.get("csv_exact_match"):
+            fused[chunk_id]["csv_exact_match"] = True
+            if "csv" not in fused[chunk_id]["retrieval_sources"]:
+                fused[chunk_id]["retrieval_sources"].append("csv")
         fused[chunk_id]["retrieval_sources"].append(source_name)
         fused[chunk_id][f"{source_name}_rank"] = rank
         fused[chunk_id]["rrf_score"] += 1 / (rrf_k + rank)
@@ -75,12 +79,18 @@ def retrieve_hybrid_chunks(
         fused_candidates = reciprocal_rank_fusion(
             dense_chunks=dense_chunks,
             bm25_chunks=bm25_chunks,
-            limit=candidate_limit,
+            limit=len(dense_chunks) + len(bm25_chunks),
         )
+        exact_matches = [chunk for chunk in fused_candidates if chunk.get("csv_exact_match")]
+        semantic_matches = [chunk for chunk in fused_candidates if not chunk.get("csv_exact_match")]
+        fused_candidates = exact_matches + semantic_matches[:candidate_limit]
 
     with timed_stage(metrics, "rerank_ms"):
-        return rerank_chunks(
+        ranked = rerank_chunks(
             query=query,
             chunks=fused_candidates,
-            limit=limit,
+            limit=len(fused_candidates),
         )
+        # A relevance model must not discard an actual row match in favour of similar rows.
+        ranked.sort(key=lambda chunk: not chunk.get("csv_exact_match", False))
+        return ranked[:limit]

@@ -77,19 +77,32 @@ def test_get_document_by_id_not_found(auth_client):
     assert response.json()["detail"] == "Document not found"
 
 
-def test_get_document_content_is_inline_and_private(auth_client, mock_document, monkeypatch):
+@pytest.mark.parametrize(
+    ("filename", "content_type", "content"),
+    [
+        ("report.pdf", "application/pdf", b"%PDF-1.7 test"),
+        ("scores.csv", "text/csv", b"name,score\nAlice,10\n"),
+    ],
+)
+def test_get_document_content_is_inline_and_private(
+    auth_client, mock_document, db_session, monkeypatch, filename, content_type, content
+):
+    mock_document.original_filename = filename
+    mock_document.content_type = content_type
+    db_session.commit()
     monkeypatch.setattr(
         "app.api.routes.documents.download_document_from_s3_storage",
-        lambda **kwargs: b"%PDF-1.7 test",
+        lambda **kwargs: content,
     )
 
     response = auth_client.get(f"/api/v1/documents/{mock_document.document_id}/content")
 
     assert response.status_code == 200
-    assert response.content == b"%PDF-1.7 test"
-    assert response.headers["content-type"] == "application/pdf"
+    assert response.content == content
+    assert response.headers["content-type"].split(";")[0] == content_type
     assert response.headers["cache-control"] == "private, no-store"
     assert "inline" in response.headers["content-disposition"]
+    assert filename in response.headers["content-disposition"]
 
 
 def test_document_content_is_tenant_scoped(auth_client, db_session):

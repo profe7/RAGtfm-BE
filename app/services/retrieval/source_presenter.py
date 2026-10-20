@@ -49,6 +49,9 @@ def _source_locations(metadata: dict[str, Any]) -> list[dict[str, Any]]:
                 "coordinates": coordinates,
             }
         )
+        row_number = location.get("row_number")
+        if isinstance(row_number, int) and row_number > 0:
+            public_locations[-1]["row_number"] = row_number
 
     return public_locations
 

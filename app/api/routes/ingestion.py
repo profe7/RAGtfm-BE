@@ -10,7 +10,7 @@ from app.core.config import get_settings
 from app.core.constants import DocumentStatus
 from app.db.models import DocumentRecord, UserRecord
 from app.db.session import get_db
-from app.schemas.ingestion import IngestPdfResponse
+from app.schemas.ingestion import IngestDocumentResponse, IngestPdfResponse
 from app.services.documents.document_catalog import create_document_record, get_document_by_checksum
 from app.services.documents.document_storage import save_uploaded_document
 from app.services.ingestion.tasks import process_document_task
@@ -43,10 +43,42 @@ async def ingest_pdf(
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
 
+    return await _ingest_document(file, db, current_user, "application/pdf", "pdf")
+
+
+@router.post(
+    "/csv",
+    response_model=IngestDocumentResponse,
+    responses={
+        400: {"description": "Invalid upload. The file must be a CSV."},
+        409: {"description": "Duplicate file — already uploaded."},
+        413: {"description": "CSV file is too large."},
+        429: {"description": "Too many documents in the queue for a given user."},
+    },
+)
+async def ingest_csv(
+    file: Annotated[UploadFile, File()],
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[UserRecord, Depends(get_current_user)],
+):
+    media_type = (file.content_type or "").split(";", 1)[0].strip().lower()
+    if media_type not in {"text/csv", "application/csv", "application/vnd.ms-excel"}:
+        raise HTTPException(status_code=400, detail="Only CSV files are allowed")
+
+    return await _ingest_document(file, db, current_user, "text/csv", "csv")
+
+
+async def _ingest_document(
+    file: UploadFile,
+    db: Session,
+    current_user: UserRecord,
+    content_type: str,
+    extension: str,
+):
     file_bytes = await file.read()
 
     if len(file_bytes) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=413, detail="PDF file is too large")
+        raise HTTPException(status_code=413, detail=f"{extension.upper()} file is too large")
 
     sha256 = hashlib.sha256(file_bytes).hexdigest()
     existing = get_document_by_checksum(db, user_id=current_user.id, sha256=sha256)
@@ -80,8 +112,8 @@ async def ingest_pdf(
     document_metadata = save_uploaded_document(
         file_bytes=file_bytes,
         document_id=document_id,
-        original_filename=file.filename or "uploaded.pdf",
-        content_type=file.content_type or "application/pdf",
+        original_filename=file.filename or f"uploaded.{extension}",
+        content_type=content_type,
         sha256=sha256,
         s3_endpoint_url=settings.s3_endpoint_url,
         s3_access_key_id=settings.s3_access_key_id,
@@ -103,8 +135,9 @@ async def ingest_pdf(
     process_document_task.delay(
         document_id=str(document_id),
         storage_path=document_metadata["storage_path"],
-        filename=file.filename or "uploaded.pdf",
+        filename=file.filename or f"uploaded.{extension}",
         user_id=current_user.id,
+        content_type=content_type,
     )
 
     return {

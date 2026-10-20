@@ -123,3 +123,27 @@ def test_captioner_separates_policy_from_untrusted_context(monkeypatch):
     assert call["messages"][1]["images"] == [b"a"]
     assert "untrusted" in call["messages"][0]["content"]
     assert call["options"] == {"temperature": 0, "num_predict": 384}
+
+
+def test_generation_preserves_csv_cells_and_original_source_id():
+    row = {"Track": "Australia", "Position": "1", "Driver": "Winner"}
+    request = json.loads(
+        build_generation_request(
+            query="Who won the Australian Grand Prix?",
+            chunks=[
+                {
+                    "text": "Track: Australia\nPosition: 1\nDriver: Winner",
+                    "metadata": {
+                        "filename": "races.csv",
+                        "chunk_type": "table",
+                        "csv_row_json": json.dumps(row),
+                    },
+                }
+            ],
+        )
+    )
+
+    source = request["retrieved_sources"][0]
+    assert source["source_id"] == 1
+    assert source["csv_row"] == row
+    assert source["content"] == "Track: Australia\nPosition: 1\nDriver: Winner"

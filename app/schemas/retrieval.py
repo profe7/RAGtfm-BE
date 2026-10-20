@@ -8,6 +8,7 @@ class SourceLocationResponse(BaseModel):
     source_order: int | None = None
     element_type: str | None = None
     page_number: int | None = None
+    row_number: int | None = None
     coordinates: dict[str, Any] | None = None
 
 

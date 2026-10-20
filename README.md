@@ -48,8 +48,9 @@ GPU : Nvidia Geforce RTX 4090 24GB
 
 ### Ingestion
 - [x] PDF upload endpoint
+- [x] CSV upload endpoint with header-labeled row chunks and row-level source metadata
 - [x] PDF file validation and upload size limit handling
-- [x] S3-compatible PDF persistence with MinIO
+- [x] S3-compatible PDF and CSV persistence with MinIO
 - [x] PostgreSQL document catalog with status tracking (`PENDING` → `READY` / `FAILED`)
 - [x] Background ingestion via Celery task queue with Redis broker
 - [x] PDF partitioning with Unstructured (high-resolution, table inference, image extraction)
@@ -83,7 +84,7 @@ GPU : Nvidia Geforce RTX 4090 24GB
 - [x] Document listing endpoint (per-user)
 - [x] Document detail endpoint
 - [x] Document deletion across PostgreSQL, ChromaDB, and object storage
-- [x] Authenticated inline PDF content endpoint for the evidence viewer (tenant ownership enforced, private/no-store caching)
+- [x] Authenticated original PDF and CSV content endpoint (tenant ownership enforced, private/no-store caching)
 
 ### Real-time Events
 - [x] Server-Sent Events (SSE) stream for live document ingestion status (`PENDING` → `READY` / `FAILED`)
@@ -110,9 +111,10 @@ GPU : Nvidia Geforce RTX 4090 24GB
 | `POST` | `/auth/login` | Login and receive a JWT token |
 | `POST` | `/auth/logout` | Invalidate the current token |
 | `POST` | `/ingest/pdf` | Upload and process a PDF (async) |
+| `POST` | `/ingest/csv` | Upload and process a CSV (async) |
 | `GET` | `/documents` | List all documents for the current user |
 | `GET` | `/documents/{document_id}` | Get metadata for a specific document |
-| `GET` | `/documents/{document_id}/content` | Stream an owned original PDF for citation verification |
+| `GET` | `/documents/{document_id}/content` | Return an owned original PDF or CSV for citation verification |
 | `DELETE` | `/documents/{document_id}` | Delete a document and all associated resources |
 | `POST` | `/documents/events/ticket` | Mint a short-lived, single-use ticket for the SSE stream |
 | `GET` | `/documents/events` | Stream live document status updates via SSE (authenticated with a ticket) |
@@ -126,6 +128,41 @@ GPU : Nvidia Geforce RTX 4090 24GB
 | `GET` | `/health/live` | Check if the API is alive |
 | `GET` | `/health/ready` | Check if the API can serve traffic |
 | `GET` | `/metrics` | Prometheus metrics (served at the app root, outside `/api/v1`) |
+
+## CSV Ingestion
+
+Send a multipart `file` to `POST /api/v1/ingest/csv` with a bearer token.
+Accepted upload media types are `text/csv`, `application/csv`, and
+`application/vnd.ms-excel`; files are stored and returned as `text/csv`.
+The existing upload size limit, per-user duplicate detection, and queue limit apply.
+
+CSV files must be UTF-8 (an optional BOM is supported), comma-delimited, and have
+unique, non-empty column headers in the first record. Quoted commas, escaped quotes,
+and multiline fields are supported. Each non-empty data row becomes a table chunk
+with its column labels included in the searchable text. Empty cells are preserved;
+blank records and rows containing only empty or whitespace cells are skipped.
+Every data row must have the same number of columns as the header.
+
+Parsing runs in the background worker. Invalid encoding, malformed CSV, or a file
+without non-empty data rows produces a `FAILED` document status without retrying.
+CSV citations include `row_number` in their source locations and have no page
+numbers or coordinates. Row numbers count CSV records starting with the header
+as record 1; a quoted multiline field is part of a single record.
+
+CSV retrieval also uses a constrained lookup planner. It translates questions into
+column/value equality filters using the accessible files' column names and sample
+values, then checks those filters against the full user-scoped row collection.
+For example, "Who won the Australian Grand Prix?" can match `Track: Australia`
+and `Position: 1`, even if semantic search initially retrieves other finishing
+positions. Matching rows are retained through fusion and reranking.
+
+The planner performs one additional model call when CSV rows are available. Its
+input includes at most 8 tables, 64 columns per table, and 32 sample values per
+column. Invalid plans, unavailable models, or unmatched filters fall back to normal
+semantic retrieval. This is equality lookup, not a general CSV analytics engine:
+whole-file counts, totals, and extrema are not guaranteed by a limited retrieved
+context. Existing header-labeled CSV rows can be queried without re-uploading;
+new uploads additionally preserve structured cells for multiline values.
 
 ## RAG Query Request
 
@@ -150,9 +187,10 @@ The `sources` stream frame contains a stable public citation object for every ch
 1. Embed the query with Ollama `nomic-embed-text`
 2. Retrieve dense candidates from ChromaDB (filtered by `user_id` and optionally `document_ids`)
 3. Retrieve lexical candidates with BM25 (same filters applied)
-4. Merge candidates with Reciprocal Rank Fusion (RRF)
-5. Rerank fused candidates with a cross-encoder
-6. Send final context chunks to the generation model, attaching the original image for image chunks so answers are grounded in the image and not only its caption
+4. For CSV files, add validated column/value matches from the scoped row collection
+5. Merge candidates with Reciprocal Rank Fusion (RRF)
+6. Rerank fused candidates with a cross-encoder, retaining exact CSV matches
+7. Send final context chunks to the generation model, attaching the original image for image chunks so answers are grounded in the image and not only its caption
 
 ## Real-time Status Stream
 

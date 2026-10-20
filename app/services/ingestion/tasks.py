@@ -4,6 +4,7 @@ from app.core.celery_app import celery_app
 from app.core.config import get_settings
 from app.core.constants import DocumentStatus
 from app.db.session import SessionLocal
+from app.services.csv_loader import extract_csv_documents
 from app.services.documents.document_catalog import update_document_status
 from app.services.documents.document_storage import download_document_from_s3_storage
 from app.services.events.redis_publisher import publish_document_event
@@ -31,7 +32,14 @@ def mark_document_failed(db, document_id: str, user_id: str) -> None:
 
 
 @celery_app.task(bind=True, max_retries=3)
-def process_document_task(self, document_id: str, storage_path: str, filename: str, user_id: str):
+def process_document_task(
+    self,
+    document_id: str,
+    storage_path: str,
+    filename: str,
+    user_id: str,
+    content_type: str = "application/pdf",
+):
     db = SessionLocal()
     try:
         result = update_document_status(
@@ -58,16 +66,24 @@ def process_document_task(self, document_id: str, storage_path: str, filename: s
             s3_expected_bucket_owner=settings.s3_expected_bucket_owner,
         )
 
-        documents = extract_pdf_documents_by_title(
+        if content_type == "text/csv":
+            loader = extract_csv_documents
+        elif content_type == "application/pdf":
+            loader = extract_pdf_documents_by_title
+        else:
+            raise ValueError(f"Unsupported document content type: {content_type}")
+
+        documents = loader(
             file_bytes=file_bytes,
             filename=filename,
         )
 
-        persist_image_chunks(
-            documents=documents,
-            document_id=document_id,
-            settings=settings,
-        )
+        if content_type == "application/pdf":
+            persist_image_chunks(
+                documents=documents,
+                document_id=document_id,
+                settings=settings,
+            )
 
         stored_chunk_ids = store_documents(
             document_id=document_id,

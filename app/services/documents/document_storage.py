@@ -28,7 +28,8 @@ def save_document_to_s3_storage(
     s3_expected_bucket_owner: str | None,
 ) -> dict:
     document_id_value = str(document_id)
-    object_key = f"documents/{document_id_value}.pdf"
+    extension = {"application/pdf": "pdf", "text/csv": "csv"}[content_type]
+    object_key = f"documents/{document_id_value}.{extension}"
 
     client = _get_s3_client(endpoint_url, access_key_id, secret_access_key, region)
 
